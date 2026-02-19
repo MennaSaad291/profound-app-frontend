@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../../core/constants/app_colors.dart';
 import 'signup_screen.dart';
 
@@ -15,6 +17,152 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _showPassword = false;
+  bool _isLoading = false;
+
+  Future<void> _loginUser() async {
+    setState(() => _isLoading = true);
+    
+    final url = Uri.parse('http://localhost:8000/login'); 
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Welcome back, ${data['user']['name']}!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+      } else {
+        final String errorMessage = data['detail'] ?? "Login failed";
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Connection failed. Is the server running?")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 40),
+                  Center(child: _buildProfoundHeader()),
+                  const SizedBox(height: 32),
+                  Center(
+                    child: Text("Welcome Back to Profound",
+                        style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryPurple)),
+                  ),
+                  const SizedBox(height: 28),
+                  
+                  _buildLabel("University Email or ID"),
+                  _buildTextFormField(
+                    controller: _emailController,
+                    hint: "you@university.edu",
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return "Please enter your email";
+                      if (!value.contains('@')) return "Enter a valid email address";
+                      return null;
+                    },
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  _buildLabel("Password"),
+                  _buildTextFormField(
+                    controller: _passwordController,
+                    hint: "Enter your password",
+                    obscure: !_showPassword,
+                    suffix: IconButton(
+                      icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _showPassword = !_showPassword),
+                    ),
+                    validator: (value) => (value == null || value.isEmpty) ? "Password is required" : null,
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  
+                  Container(
+                    width: double.infinity,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent, 
+                        shadowColor: Colors.transparent,
+                      ),
+                      onPressed: _isLoading ? null : () {
+                        if (_formKey.currentState!.validate()) {
+                          _loginUser();
+                        }
+                      },
+                      child: _isLoading 
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text("Login", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.primaryPurple, width: 2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpForm())),
+                      child: const Text(
+                        "Sign up with University Credentials",
+                        style: TextStyle(color: AppColors.primaryPurple, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildProfoundHeader() {
     return Column(
@@ -59,104 +207,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
-                  Center(child: _buildProfoundHeader()),
-                  const SizedBox(height: 32),
-                  Center(
-                    child: Text("Welcome Back to Profound",
-                        style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryPurple)),
-                  ),
-                  const SizedBox(height: 28),
-                  _buildLabel("University Email or ID"),
-                  _buildTextFormField(
-                    controller: _emailController,
-                    hint: "you@university.edu",
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return "Please enter your email";
-                      if (!value.contains('@')) return "Enter a valid email address";
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  _buildLabel("Password"),
-                  _buildTextFormField(
-                    controller: _passwordController,
-                    hint: "Enter your password",
-                    obscure: !_showPassword,
-                    suffix: IconButton(
-                      icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _showPassword = !_showPassword),
-                    ),
-                    validator: (value) => (value == null || value.isEmpty) ? "Password is required" : null,
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    height: 55,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          // TODO: API Call
-                        }
-                      },
-                      child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                   // Signup Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: AppColors.primaryPurple,
-                        width: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/signup'),
-                    child: const Text(
-                      "Sign up with University Credentials",
-                      style: TextStyle(
-                        color: AppColors.primaryPurple,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
 
   Widget _buildLabel(String text) {
     return Padding(
