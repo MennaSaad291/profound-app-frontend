@@ -4,125 +4,181 @@ import '../../../core/constants/app_colors.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _showPassword = false;
+
+  Widget _buildProfoundHeader() {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipRect(
+              child: Align(
+                alignment: Alignment.center,
+                widthFactor: 0.65,
+                child: Image.asset(
+                  'assets/images/logo.jpeg',
+                  height: 70,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.book, color: Colors.amber, size: 48),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text.rich(
+              TextSpan(
+                children: const [
+                  TextSpan(text: "Prof", style: TextStyle(color: AppColors.darkPurple)),
+                  TextSpan(text: "ound", style: TextStyle(color: AppColors.brandAmber)),
+                ],
+              ),
+              style: GoogleFonts.inter(fontSize: 34, fontWeight: FontWeight.bold, height: 1),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            "Your university's comprehensive platform for academic excellence",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.textGray500, height: 1.5),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryNavy,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo/Title
-                Text("Profound", 
-                  style: GoogleFonts.poppins(
-                    fontSize: 48, 
-                    fontWeight: FontWeight.bold, 
-                    color: AppColors.textWhite,
-                    letterSpacing: 1.5,
-                  )
-                ),
-                Text("Your university's comprehensive platform for academic excellence", 
-                  style: GoogleFonts.poppins(fontSize: 14, color: AppColors.accentTeal, fontWeight: FontWeight.w300)
-                ),
-                const SizedBox(height: 60),
-
-                // Email Input
-                _buildInputLabel("University Email"),
-                const SizedBox(height: 8),
-                TextFormField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration(Icons.email_outlined, "Enter your email"),
-                  validator: (value) => (value == null || !value.contains('@')) ? "Invalid email" : null,
-                ),
-                const SizedBox(height: 24),
-
-                // Password Input
-                _buildInputLabel("Password"),
-                const SizedBox(height: 8),
-                TextFormField(
-                  obscureText: _obscurePassword,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration(
-                    Icons.lock_outline, 
-                    "Enter password",
-                    suffix: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: AppColors.textGrey),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    )
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 40),
+                  Center(child: _buildProfoundHeader()),
+                  const SizedBox(height: 32),
+                  Center(
+                    child: Text("Welcome Back to Profound",
+                        style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryPurple)),
                   ),
-                  validator: (value) => value!.length < 6 ? "Password too short" : null,
-                ),
-                
-                const SizedBox(height: 40),
-
-                // Login Button
+                  const SizedBox(height: 28),
+                  _buildLabel("University Email or ID"),
+                  _buildTextFormField(
+                    controller: _emailController,
+                    hint: "you@university.edu",
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return "Please enter your email";
+                      if (!value.contains('@')) return "Enter a valid email address";
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _buildLabel("Password"),
+                  _buildTextFormField(
+                    controller: _passwordController,
+                    hint: "Enter your password",
+                    obscure: !_showPassword,
+                    suffix: IconButton(
+                      icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _showPassword = !_showPassword),
+                    ),
+                    validator: (value) => (value == null || value.isEmpty) ? "Password is required" : null,
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent),
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          // TODO: API Call
+                        }
+                      },
+                      child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                   // Signup Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentTeal,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: AppColors.primaryPurple,
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) { /* Handle Login */ }
-                    },
-                    child: Text("Login", 
-                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryNavy)
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SignupScreen())),
-                  child: RichText(
-                    text: TextSpan(
-                      text: "New here? ",
-                      style: GoogleFonts.poppins(color: AppColors.textGrey),
-                      children: const [
-                        TextSpan(text: "Create Account", style: TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold))
-                      ]
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/signup'),
+                    child: const Text(
+                      "Sign up with University Credentials",
+                      style: TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 40),
               ],
             ),
           ),
         ),
       ),
+    ),
+  );
+}
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: GoogleFonts.inter(color: AppColors.textGray700, fontWeight: FontWeight.w500)),
     );
   }
 
-  Widget _buildInputLabel(String label) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(label, style: GoogleFonts.poppins(color: AppColors.textWhite, fontSize: 14, fontWeight: FontWeight.w500)),
-    );
-  }
-
-  InputDecoration _inputDecoration(IconData icon, String hint, {Widget? suffix}) {
-    return InputDecoration(
-      filled: true,
-      fillColor: AppColors.fieldFill,
-      hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-      prefixIcon: Icon(icon, color: AppColors.accentTeal),
-      suffixIcon: suffix,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.accentTeal)),
+  Widget _buildTextFormField({required String hint, required TextEditingController controller, bool obscure = false, Widget? suffix, String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      validator: validator,
+      decoration: InputDecoration(
+        hintText: hint,
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderGray)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
+      ),
     );
   }
 }

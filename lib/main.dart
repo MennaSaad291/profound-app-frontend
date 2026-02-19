@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'features/auth/screens/login_screen.dart'; 
+import 'features/auth/screens/signup_screen.dart'; 
 
 void main() {
   runApp(const ProfoundApp());
@@ -18,6 +19,10 @@ class ProfoundApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
       ),
       home: LoginScreen(), 
+      routes: {
+        '/login': (context) => LoginScreen(),
+        '/signup': (context) => SignUpForm(), 
+      },
     );
   }
 }
