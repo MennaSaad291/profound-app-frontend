@@ -45,7 +45,12 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
+        Navigator.pushReplacementNamed(
+    context, 
+    '/profile', 
+    arguments: data['user']['id'], 
+  );
+
       } else {
         final String errorMessage = data['detail'] ?? "Login failed";
         if (!mounted) return;

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
@@ -18,9 +18,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{36581DDD-C030-3FEE-984B-CCEE9594DE95}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{FE7499D4-A264-3B63-8E6A-00889B49B956}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
     <Platform>x64</Platform>
     <ProjectName>flutter_assemble</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
@@ -29,17 +29,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -85,10 +85,10 @@
     </Midl>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\ma902\profound_app\build\windows\x64\CMakeFiles\587ad15be115fb1b7d2ee991c0c5b5a2\flutter_windows.dll.rule">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.dll, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_export.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_messenger.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_plugin_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_texture_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
+    <CustomBuild Include="I:\GRADPROJECT\profound-app\build\windows\x64\CMakeFiles\0d0f4f249156be79a5f0c7159c0672ba\flutter_windows.dll.rule">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.dll, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_export.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_messenger.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_plugin_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_texture_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=C:\flutter\flutter PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_ROOT=C:\flutter\flutter FLUTTER_EPHEMERAL_DIR=C:\Users\ma902\profound_app\windows\flutter\ephemeral PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_TARGET=C:\Users\ma902\profound_app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzUuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049MjBmODI3NDkzOQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MWU5YTgxMWJmOA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My45LjA= DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=C:\Users\ma902\profound_app\.dart_tool\package_config.json C:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Debug
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=D:\flutter\flutter PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_ROOT=D:\flutter\flutter FLUTTER_EPHEMERAL_DIR=I:\GRADPROJECT\profound-app\windows\flutter\ephemeral PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_TARGET=I:\GRADPROJECT\profound-app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuNDEuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049NTgyYTBlN2M1NQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MzQ1MmQ3MzViZA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMS4w DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=I:\GRADPROJECT\profound-app\.dart_tool\package_config.json D:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Debug
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -97,12 +97,12 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;C:\Users\ma902\profound_app\build\windows\x64\flutter\_phony_</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;I:\GRADPROJECT\profound-app\build\windows\x64\flutter\_phony_</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Generating C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.dll, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_export.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_messenger.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_plugin_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_texture_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Generating I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.dll, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_export.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_messenger.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_plugin_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_texture_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=C:\flutter\flutter PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_ROOT=C:\flutter\flutter FLUTTER_EPHEMERAL_DIR=C:\Users\ma902\profound_app\windows\flutter\ephemeral PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_TARGET=C:\Users\ma902\profound_app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzUuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049MjBmODI3NDkzOQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MWU5YTgxMWJmOA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My45LjA= DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=C:\Users\ma902\profound_app\.dart_tool\package_config.json C:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Profile
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=D:\flutter\flutter PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_ROOT=D:\flutter\flutter FLUTTER_EPHEMERAL_DIR=I:\GRADPROJECT\profound-app\windows\flutter\ephemeral PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_TARGET=I:\GRADPROJECT\profound-app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuNDEuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049NTgyYTBlN2M1NQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MzQ1MmQ3MzViZA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMS4w DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=I:\GRADPROJECT\profound-app\.dart_tool\package_config.json D:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Profile
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -111,12 +111,12 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;C:\Users\ma902\profound_app\build\windows\x64\flutter\_phony_</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;I:\GRADPROJECT\profound-app\build\windows\x64\flutter\_phony_</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">false</VerifyInputsAndOutputsExist>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.dll, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_export.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_windows.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_messenger.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_plugin_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/flutter_texture_registrar.h, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, C:/Users/ma902/profound_app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.dll, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_export.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_windows.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_messenger.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_plugin_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/flutter_texture_registrar.h, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, I:/GRADPROJECT/profound-app/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=C:\flutter\flutter PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_ROOT=C:\flutter\flutter FLUTTER_EPHEMERAL_DIR=C:\Users\ma902\profound_app\windows\flutter\ephemeral PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_TARGET=C:\Users\ma902\profound_app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzUuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049MjBmODI3NDkzOQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MWU5YTgxMWJmOA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My45LjA= DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=C:\Users\ma902\profound_app\.dart_tool\package_config.json C:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Release
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=D:\flutter\flutter PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_ROOT=D:\flutter\flutter FLUTTER_EPHEMERAL_DIR=I:\GRADPROJECT\profound-app\windows\flutter\ephemeral PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_TARGET=I:\GRADPROJECT\profound-app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuNDEuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049NTgyYTBlN2M1NQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MzQ1MmQ3MzViZA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMS4w DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=I:\GRADPROJECT\profound-app\.dart_tool\package_config.json D:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Release
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -125,13 +125,13 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;C:\Users\ma902\profound_app\build\windows\x64\flutter\_phony_</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;I:\GRADPROJECT\profound-app\build\windows\x64\flutter\_phony_</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</VerifyInputsAndOutputsExist>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\ma902\profound_app\build\windows\x64\CMakeFiles\547a50079e0e0f2251b4d9bab37be96f\flutter_assemble.rule">
+    <CustomBuild Include="I:\GRADPROJECT\profound-app\build\windows\x64\CMakeFiles\d7e43acdae441c9e39ebda9ff9fc1e31\flutter_assemble.rule">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"></Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
 :cmEnd
@@ -140,8 +140,8 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
       <Message Condition="'$(Configuration)|$(Platform)'=='Profile|x64'"></Message>
@@ -152,8 +152,8 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">false</VerifyInputsAndOutputsExist>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'"></Message>
@@ -164,18 +164,18 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.dll;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_export.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_windows.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_messenger.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_plugin_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\flutter_texture_registrar.h;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;C:\Users\ma902\profound_app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.dll;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_export.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_windows.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_messenger.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_plugin_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\flutter_texture_registrar.h;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\core_implementations.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\standard_codec.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\plugin_registrar.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_engine.cc;I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\cpp_client_wrapper\flutter_view_controller.cc;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\flutter_assemble</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</VerifyInputsAndOutputsExist>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\ma902\profound_app\windows\flutter\CMakeLists.txt">
-      <UseUtf8Encoding>Always</UseUtf8Encoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/ma902/profound_app/windows/flutter/CMakeLists.txt</Message>
+    <CustomBuild Include="I:\GRADPROJECT\profound-app\windows\flutter\CMakeLists.txt">
+      <StdOutEncoding>UTF-8</StdOutEncoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule I:/GRADPROJECT/profound-app/windows/flutter/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-file C:/Users/ma902/profound_app/build/windows/x64/flutter/CMakeFiles/generate.stamp
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-file I:/GRADPROJECT/profound-app/build/windows/x64/flutter/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -183,12 +183,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Building Custom Rule C:/Users/ma902/profound_app/windows/flutter/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Building Custom Rule I:/GRADPROJECT/profound-app/windows/flutter/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-file C:/Users/ma902/profound_app/build/windows/x64/flutter/CMakeFiles/generate.stamp
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-file I:/GRADPROJECT/profound-app/build/windows/x64/flutter/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -196,12 +196,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/ma902/profound_app/windows/flutter/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule I:/GRADPROJECT/profound-app/windows/flutter/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-file C:/Users/ma902/profound_app/build/windows/x64/flutter/CMakeFiles/generate.stamp
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-file I:/GRADPROJECT/profound-app/build/windows/x64/flutter/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -209,18 +209,18 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\ma902\profound_app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">I:\GRADPROJECT\profound-app\windows\flutter\ephemeral\generated_config.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\ma902\profound_app\build\windows\x64\flutter\CMakeFiles\flutter_assemble">
+    <None Include="I:\GRADPROJECT\profound-app\build\windows\x64\flutter\CMakeFiles\flutter_assemble">
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="C:\Users\ma902\profound_app\build\windows\x64\ZERO_CHECK.vcxproj">
-      <Project>{F90280FE-D9C7-32DC-B919-30F91FB84BA4}</Project>
+    <ProjectReference Include="I:\GRADPROJECT\profound-app\build\windows\x64\ZERO_CHECK.vcxproj">
+      <Project>{09BD1E04-860A-3049-BB1B-70D7F252BBB9}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
