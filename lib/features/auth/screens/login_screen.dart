@@ -45,30 +45,47 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushReplacementNamed(
-    context, 
-    '/profile', 
-    arguments: data['user']['id'], 
-  );
 
+        final userData = {
+          'id': data['user']['id'],
+          'name': data['user']['name'],
+        };
+
+        Navigator.pushReplacementNamed(
+          context, 
+          '/dashboard', 
+          arguments: userData, 
+        );
+
+      } else if (response.statusCode == 422) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Invalid format. Please use a valid university email (e.g. name@university.edu)"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       } else {
         final String errorMessage = data['detail'] ?? "Login failed";
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(errorMessage), 
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connection failed. Is the server running?")),
+        const SnackBar(content: Text("Connection failed")),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

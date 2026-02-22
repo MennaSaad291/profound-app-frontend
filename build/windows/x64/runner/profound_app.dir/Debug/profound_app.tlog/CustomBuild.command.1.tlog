@@ -1,6 +1,6 @@
-^I:\GRADPROJECT\PROFOUND-APP\WINDOWS\RUNNER\CMAKELISTS.TXT
+^C:\USERS\MA902\PROFOUND_APP\WINDOWS\RUNNER\CMAKELISTS.TXT
 setlocal
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-file I:/GRADPROJECT/profound-app/build/windows/x64/runner/CMakeFiles/generate.stamp
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-file C:/Users/ma902/profound_app/build/windows/x64/runner/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

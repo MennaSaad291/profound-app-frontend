@@ -1,4 +1,4 @@
-# Install script for directory: I:/GRADPROJECT/profound-app/windows/runner
+# Install script for directory: C:/Users/ma902/profound_app/windows/runner
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

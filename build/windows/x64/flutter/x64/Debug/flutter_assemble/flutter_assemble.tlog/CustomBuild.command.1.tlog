@@ -1,6 +1,6 @@
-^I:\GRADPROJECT\PROFOUND-APP\BUILD\WINDOWS\X64\CMAKEFILES\0D0F4F249156BE79A5F0C7159C0672BA\FLUTTER_WINDOWS.DLL.RULE
+^C:\USERS\MA902\PROFOUND_APP\BUILD\WINDOWS\X64\CMAKEFILES\587AD15BE115FB1B7D2EE991C0C5B5A2\FLUTTER_WINDOWS.DLL.RULE
 setlocal
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=D:\flutter\flutter PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_ROOT=D:\flutter\flutter FLUTTER_EPHEMERAL_DIR=I:\GRADPROJECT\profound-app\windows\flutter\ephemeral PROJECT_DIR=I:\GRADPROJECT\profound-app FLUTTER_TARGET=I:\GRADPROJECT\profound-app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuNDEuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049NTgyYTBlN2M1NQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MzQ1MmQ3MzViZA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMS4w DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=I:\GRADPROJECT\profound-app\.dart_tool\package_config.json D:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Debug
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E env FLUTTER_ROOT=C:\flutter\flutter PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_ROOT=C:\flutter\flutter FLUTTER_EPHEMERAL_DIR=C:\Users\ma902\profound_app\windows\flutter\ephemeral PROJECT_DIR=C:\Users\ma902\profound_app FLUTTER_TARGET=C:\Users\ma902\profound_app\lib\main.dart DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzUuMQ==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049MjBmODI3NDkzOQ==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049MWU5YTgxMWJmOA==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My45LjA= DART_OBFUSCATION=false TRACK_WIDGET_CREATION=true TREE_SHAKE_ICONS=false PACKAGE_CONFIG=C:\Users\ma902\profound_app\.dart_tool\package_config.json C:/flutter/flutter/packages/flutter_tools/bin/tool_backend.bat windows-x64 Debug
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
@@ -8,7 +8,7 @@ endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd
-^I:\GRADPROJECT\PROFOUND-APP\BUILD\WINDOWS\X64\CMAKEFILES\D7E43ACDAE441C9E39EBDA9FF9FC1E31\FLUTTER_ASSEMBLE.RULE
+^C:\USERS\MA902\PROFOUND_APP\BUILD\WINDOWS\X64\CMAKEFILES\547A50079E0E0F2251B4D9BAB37BE96F\FLUTTER_ASSEMBLE.RULE
 setlocal
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
@@ -16,9 +16,9 @@ endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd
-^I:\GRADPROJECT\PROFOUND-APP\WINDOWS\FLUTTER\CMAKELISTS.TXT
+^C:\USERS\MA902\PROFOUND_APP\WINDOWS\FLUTTER\CMAKELISTS.TXT
 setlocal
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-file I:/GRADPROJECT/profound-app/build/windows/x64/flutter/CMakeFiles/generate.stamp
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-file C:/Users/ma902/profound_app/build/windows/x64/flutter/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

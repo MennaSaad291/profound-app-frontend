@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="I:\GRADPROJECT\profound-app\build\windows\x64\CMakeFiles\84eee253c3d3b884f7debaae3b4ceddf\INSTALL_force.rule">
+    <CustomBuild Include="C:\Users\ma902\profound_app\build\windows\x64\CMakeFiles\9fc8bc1bb16ee31f09a2c8a831a76db1\INSTALL_force.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
-      <UniqueIdentifier>{EFFACA8E-8AFD-381C-A14B-3A8E5864A9A8}</UniqueIdentifier>
+      <UniqueIdentifier>{FD8635F3-F4B1-3FB7-9F03-5329049A39F2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

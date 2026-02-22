@@ -1,6 +1,6 @@
-^I:\GRADPROJECT\PROFOUND-APP\BUILD\WINDOWS\X64\CMAKEFILES\84EEE253C3D3B884F7DEBAAE3B4CEDDF\GENERATE.STAMP.RULE
+^C:\USERS\MA902\PROFOUND_APP\BUILD\WINDOWS\X64\CMAKEFILES\9FC8BC1BB16EE31F09A2C8A831A76DB1\GENERATE.STAMP.RULE
 setlocal
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SI:/GRADPROJECT/profound-app/windows -BI:/GRADPROJECT/profound-app/build/windows/x64 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file I:/GRADPROJECT/profound-app/build/windows/x64/profound_app.sln
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Users/ma902/profound_app/windows -BC:/Users/ma902/profound_app/build/windows/x64 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/ma902/profound_app/build/windows/x64/profound_app.sln
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

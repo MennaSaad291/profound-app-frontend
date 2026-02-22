@@ -1,4 +1,4 @@
-# Install script for directory: I:/GRADPROJECT/profound-app/windows/flutter
+# Install script for directory: C:/Users/ma902/profound_app/windows/flutter
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

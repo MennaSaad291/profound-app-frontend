@@ -6,38 +6,22 @@ class CourseDetailsDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Handling arguments with a fallback for testing
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? 
                  {'code': 'CS 401', 'name': 'Artificial Intelligence'};
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF9333EA), Color(0xFFD97706)])
-          )
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: Colors.white), 
-          onPressed: () => Navigator.pop(context)
-        ),
-        title: Text(args['code'], style: const TextStyle(color: Colors.white)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildIdentityHeader(args),
-            const SizedBox(height: 20),
-            _buildPerformanceOverview(),
-            const SizedBox(height: 20),
-            _buildTrendCard(),
-            const SizedBox(height: 20),
-            _buildGradeDistribution(), 
-            const SizedBox(height: 32),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildIdentityHeader(args),
+          const SizedBox(height: 20),
+          _buildPerformanceOverview(),
+          const SizedBox(height: 20),
+          _buildTrendCard(),
+          const SizedBox(height: 20),
+          _buildGradeDistribution(), 
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }

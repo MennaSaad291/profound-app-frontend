@@ -2,13 +2,13 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>I:\GRADPROJECT\profound-app\build\windows\x64\x64\Debug\ZERO_CHECK</FullPath>
+      <FullPath>C:\Users\ma902\profound_app\build\windows\x64\x64\Debug\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>I:\GRADPROJECT\profound-app\build\windows\x64\flutter\x64\Debug\flutter_assemble</FullPath>
+      <FullPath>C:\Users\ma902\profound_app\build\windows\x64\flutter\x64\Debug\flutter_assemble</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>I:\GRADPROJECT\profound-app\build\windows\x64\runner\Debug\profound_app.exe</FullPath>
+      <FullPath>C:\Users\ma902\profound_app\build\windows\x64\runner\Debug\profound_app.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
