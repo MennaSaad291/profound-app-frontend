@@ -5,6 +5,7 @@ import 'features/auth/screens/profile_screen.dart';
 import 'features/courses/courses_list_screen.dart';
 import 'features/courses/screens/course_details_screen.dart';
 import 'features/grading/ai_grading_module.dart';
+import 'features/analytics/full_analytics_reports_module.dart';
 
 void main() {
   runApp(const ProfoundApp());
@@ -28,11 +29,12 @@ class ProfoundApp extends StatelessWidget {
         '/profile': (context) => const ProfessorProfileScreen(),
         '/courses': (context) => const CoursesModuleScreen(),
         '/course_details': (context) => const CourseDetailsDashboard(),
-        '/grading_module': (context) => AIGradingModule(
-          onBack: () => Navigator.pop(context),
-        ),
+        '/grading_module': (context) =>
+            AIGradingModule(onBack: () => Navigator.pop(context)),
+        '/analytics': (context) =>
+            FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
       },
-      home:LoginScreen (),
+      home: LoginScreen(),
     );
   }
 }
