@@ -63,9 +63,9 @@
     },
     {
       "name": "fl_chart",
-      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/fl_chart-1.1.1",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/fl_chart-0.66.2",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.2"
     },
     {
       "name": "flutter",
@@ -126,6 +126,12 @@
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/lints-6.1.0",
       "packageUri": "lib/",
       "languageVersion": "3.8"
+    },
+    {
+      "name": "lucide_icons",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/lucide_icons-0.257.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "matcher",

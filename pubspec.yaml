@@ -33,7 +33,9 @@ dependencies:
   google_fonts: ^8.0.2
   cupertino_icons: ^1.0.8
   http: ^1.6.0
-  fl_chart: ^1.1.1 
+  fl_chart: ^0.66.0 
+  lucide_icons: ^0.257.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

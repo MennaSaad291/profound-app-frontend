@@ -1,13 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class CourseDetailsDashboard extends StatelessWidget {
+class CourseDetailsDashboard extends StatefulWidget {
   const CourseDetailsDashboard({super.key});
+
+  @override
+  State<CourseDetailsDashboard> createState() => _CourseDetailsDashboardState();
+}
+
+class _CourseDetailsDashboardState extends State<CourseDetailsDashboard> {
+  Map<String, dynamic>? analytics;
+  bool _isLoading = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('id') && analytics == null) {
+      _fetchAnalytics(args['id']);
+    }
+  }
+
+  Future<void> _fetchAnalytics(int courseId) async {
+    final url = Uri.parse('http://localhost:8000/course-analytics/$courseId');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        setState(() {
+          analytics = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? 
                  {'code': 'CS 401', 'name': 'Artificial Intelligence'};
+
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -39,11 +75,11 @@ class CourseDetailsDashboard extends StatelessWidget {
         children: [
           Text(args['name'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          const Row(
+          Row(
             children: [
-              Icon(Icons.calendar_today, color: Colors.white70, size: 14),
-              SizedBox(width: 6),
-              Text("Fall 2025 • Room 201", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const Icon(Icons.calendar_today, color: Colors.white70, size: 14),
+              const SizedBox(width: 6),
+              Text("${args['semester'] ?? 'Fall 2025'} • Room 201", style: const TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           )
         ],
@@ -54,9 +90,9 @@ class CourseDetailsDashboard extends StatelessWidget {
   Widget _buildPerformanceOverview() {
     return Row(
       children: [
-        _miniMetricCard("Average", "78.5%", Colors.purple, Icons.analytics),
+        _miniMetricCard("Average", analytics?['average'] ?? "78.5%", Colors.purple, Icons.analytics),
         const SizedBox(width: 12),
-        _miniMetricCard("At Risk", "8", Colors.red, Icons.warning_amber),
+        _miniMetricCard("At Risk", "${analytics?['at_risk'] ?? 8}", Colors.red, Icons.warning_amber),
       ],
     );
   }
@@ -78,6 +114,7 @@ class CourseDetailsDashboard extends StatelessWidget {
   }
 
   Widget _buildTrendCard() {
+    final List<dynamic> trend = analytics?['trend'] ?? [70, 75, 72, 80, 78];
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -126,7 +163,7 @@ class CourseDetailsDashboard extends StatelessWidget {
                 ),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: const [FlSpot(0, 70), FlSpot(1, 75), FlSpot(2, 72), FlSpot(3, 80), FlSpot(4, 78)],
+                    spots: trend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.toDouble())).toList(),
                     isCurved: true,
                     color: Colors.purple,
                     barWidth: 3,
@@ -143,6 +180,7 @@ class CourseDetailsDashboard extends StatelessWidget {
   }
 
   Widget _buildGradeDistribution() {
+    final Map<String, dynamic> dist = analytics?['distribution'] ?? {"A": 12, "B": 18, "C": 14, "D": 5, "F": 3};
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -160,7 +198,7 @@ class CourseDetailsDashboard extends StatelessWidget {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: 20,
+                maxY: 25,
                 titlesData: FlTitlesData(
                   show: true,
                   bottomTitles: AxisTitles(
@@ -183,32 +221,20 @@ class CourseDetailsDashboard extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        return Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10));
-                      },
+                      getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10)),
                     ),
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey[100]!, strokeWidth: 1),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border(
-                    left: BorderSide(color: Colors.grey[400]!, width: 1),
-                    bottom: BorderSide(color: Colors.grey[400]!, width: 1),
-                  ),
-                ),
+                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey[100]!, strokeWidth: 1)),
+                borderData: FlBorderData(show: true, border: Border(left: BorderSide(color: Colors.grey[400]!, width: 1), bottom: BorderSide(color: Colors.grey[400]!, width: 1))),
                 barGroups: [
-                  _makeGroupData(0, 12, Colors.green),
-                  _makeGroupData(1, 18, Colors.blue),
-                  _makeGroupData(2, 14, Colors.amber),
-                  _makeGroupData(3, 5, Colors.orange),
-                  _makeGroupData(4, 3, Colors.red),
+                  _makeGroupData(0, dist['A'].toDouble(), Colors.green),
+                  _makeGroupData(1, dist['B'].toDouble(), Colors.blue),
+                  _makeGroupData(2, dist['C'].toDouble(), Colors.amber),
+                  _makeGroupData(3, dist['D'].toDouble(), Colors.orange),
+                  _makeGroupData(4, dist['F'].toDouble(), Colors.red),
                 ],
               ),
             ),
@@ -229,7 +255,7 @@ class CourseDetailsDashboard extends StatelessWidget {
           color: color,
           width: 16,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-          backDrawRodData: BackgroundBarChartRodData(show: true, toY: 20, color: Colors.grey[50]),
+          backDrawRodData: BackgroundBarChartRodData(show: true, toY: 25, color: Colors.grey[50]),
         ),
       ],
     );
@@ -237,8 +263,7 @@ class CourseDetailsDashboard extends StatelessWidget {
 
   Widget _buildLegend() {
     return Wrap(
-      spacing: 16,
-      runSpacing: 8,
+      spacing: 16, runSpacing: 8,
       children: [
         _legendItem("A (Excellent)", Colors.green),
         _legendItem("B (Good)", Colors.blue),

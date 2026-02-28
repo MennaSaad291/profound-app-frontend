@@ -6,6 +6,8 @@ import 'features/courses/screens/courses_list_screen.dart';
 import 'features/courses/screens/course_details_screen.dart';
 import 'features/dashboard/screens/professor_dashboard.dart';
 import 'features/layout/main_layout.dart';
+import 'features/grading/ai_grading_module.dart';
+import 'features/analytics/full_analytics_reports_module.dart';
 
 void main() {
   runApp(const ProfoundApp());
@@ -18,12 +20,11 @@ class ProfoundApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Profound',
-      debugShowCheckedModeBanner: false, 
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
       ),
-      home: const LoginScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpForm(),
@@ -31,7 +32,10 @@ class ProfoundApp extends StatelessWidget {
         '/courses': (context) => const MainLayout(child: CoursesModuleScreen()),
         '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
+        '/grading': (context) => AIGradingModule(onBack: () => Navigator.pop(context)),
+        '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
       },
+      home: const LoginScreen(),
     );
   }
 }
