@@ -104,8 +104,9 @@ class MainLayout extends StatelessWidget {
           _navItem(context, Icons.assignment_outlined, "Grading", '/grading', currentRoute == '/grading'),
           _navItem(context, Icons.analytics_outlined, "Analytics & Reports", '/analytics', currentRoute == '/analytics'),
           _navItem(context, Icons.person_outline, "Academic Profile", '/profile', currentRoute == '/profile'),
+          _navItem(context, Icons.science_outlined, "Research", '/research', currentRoute == '/research'),
           _navItem(context, Icons.settings_outlined, "Settings", '/settings', currentRoute == '/settings'),
-          
+                    
           const Spacer(),
           const Divider(indent: 20, endIndent: 20),
           ListTile(

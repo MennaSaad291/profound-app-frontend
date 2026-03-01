@@ -8,6 +8,8 @@ import 'features/dashboard/screens/professor_dashboard.dart';
 import 'features/layout/main_layout.dart';
 import 'features/grading/ai_grading_module.dart';
 import 'features/analytics/full_analytics_reports_module.dart';
+import 'features/research/screens/research_organizer_screen.dart';
+import 'features/settings/screens/system_settings_screen.dart';
 
 void main() {
   runApp(const ProfoundApp());
@@ -34,6 +36,8 @@ class ProfoundApp extends StatelessWidget {
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
         '/grading': (context) => AIGradingModule(onBack: () => Navigator.pop(context)),
         '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
+        '/research': (context) => const ResearchOrganizerScreen(),
+        '/settings': (context) => const SystemSettingsScreen(),
       },
       home: const LoginScreen(),
     );
