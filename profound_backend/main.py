@@ -1,10 +1,12 @@
 import os
 import bcrypt
+import pandas as pd
+import io
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text
@@ -34,6 +36,7 @@ def get_db():
         db.close()
 
 # --- Database Models ---
+
 class UserDB(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -52,6 +55,17 @@ class CourseDB(Base):
     semester = Column(String)
     students = Column(Integer, default=0)
     status = Column(String) 
+    schedule = Column(String, default="Mon, Wed 10:00 AM - 11:30 AM") # Required for UI Details
+    room = Column(String, default="Building A, Room 201") # Required for UI Details
+    progress = Column(Integer, default=65) # Required for Progress Bar
+
+class StudentDB(Base):
+    __tablename__ = "students"
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(String) # ID from Excel
+    name = Column(String)
+    department = Column(String)
+    course_id = Column(Integer, ForeignKey("courses.id"))
 
 class PublicationDB(Base):
     __tablename__ = "publications"
@@ -81,9 +95,7 @@ Base.metadata.create_all(bind=engine)
 
 # --- FastAPI Initialization ---
 app = FastAPI(title="Profound Academic API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# CRITICAL: Allow Flutter to connect to the backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -92,13 +104,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Pydantic Models (Schemas) ---
+# --- Pydantic Schemas ---
+
 class UserCreate(BaseModel):
     full_name: str
     email: EmailStr
     password: str
 
-# --- Pydantic Schemas ---
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -123,17 +135,6 @@ class CourseCreate(BaseModel):
     students: int
     status: str
 
-class ProjectCreate(BaseModel):
-    user_id: int
-    title: str
-    team: str
-    year: str
-    status: str
-    
-class InterestCreate(BaseModel):
-    user_id: int
-    name: str
-    
 class CourseResponse(BaseModel):
     id: int
     code: str
@@ -141,6 +142,9 @@ class CourseResponse(BaseModel):
     semester: str
     students: int
     status: str
+    schedule: Optional[str]
+    room: Optional[str]
+    progress: Optional[int]
     class Config:
         from_attributes = True
 
@@ -151,11 +155,9 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     email_clean = user.email.lower()
     if db.query(UserDB).filter(UserDB.email == email_clean).first():
         raise HTTPException(status_code=400, detail="Email already registered")
-    
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(user.password.encode('utf-8'), salt).decode('utf-8')
     new_user = UserDB(full_name=user.full_name, email=email_clean, password_hash=hashed)
-    
     db.add(new_user)
     db.commit()
     return {"message": "User created successfully"}
@@ -172,116 +174,81 @@ def get_profile(user_id: int, db: Session = Depends(get_db)):
     user = db.query(UserDB).filter(UserDB.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
     pubs = db.query(PublicationDB).filter(PublicationDB.user_id == user_id).all()
     courses = db.query(CourseDB).filter(CourseDB.user_id == user_id).all()
     projects = db.query(ProjectDB).filter(ProjectDB.user_id == user_id).all()
     interests = db.query(InterestDB).filter(InterestDB.user_id == user_id).all()
-    
     return {
-        "id": user.id,
-        "full_name": user.full_name,
-        "bio": user.bio,
-        "department": user.department,
+        "id": user.id, "full_name": user.full_name, "bio": user.bio, "department": user.department,
         "metrics": {
             "citations": sum(p.citations for p in pubs),
             "students": sum(c.students for c in courses),
-            "papers": len(pubs),
-            "projects": len(projects)
+            "papers": len(pubs), "projects": len(projects)
         },
-        "publications": pubs,
-        "courses": courses,
-        "projects": projects,
+        "publications": pubs, "courses": courses, "projects": projects,
         "interests": [i.name for i in interests]
     }
 
-@app.post("/profile/update/{user_id}")
-def update_profile(user_id: int, update_data: UserUpdate, db: Session = Depends(get_db)):
-    db_user = db.query(UserDB).filter(UserDB.id == user_id).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
+@app.post("/courses-with-students")
+async def create_course_with_excel(
+    user_id: int = Form(...),
+    code: str = Form(...),
+    name: str = Form(...),
+    semester: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Excel Enrollment: Automatically calculates students and creates detailed course"""
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents))
+    student_count = len(df)
     
-    db_user.full_name = update_data.full_name
-    db_user.bio = update_data.bio
-    db_user.department = update_data.department
-    db.commit()
-    return {"message": "Profile updated successfully"}
-
-@app.post("/publications")
-def add_pub(pub: PublicationCreate, db: Session = Depends(get_db)):
-    new_pub = PublicationDB(**pub.model_dump()) # Updated to model_dump() for Pydantic v2
-    db.add(new_pub)
-    db.commit()
-    return {"message": "Success"}
-
-@app.post("/courses")
-def add_course(course: CourseCreate, db: Session = Depends(get_db)):
-    new_course = CourseDB(**course.model_dump())
+    new_course = CourseDB(
+        user_id=user_id, code=code, name=name, 
+        semester=semester, students=student_count, status="active",
+        schedule="Mon, Wed 10:00 AM - 11:30 AM", # Matches Image UI
+        room="Building A, Room 201",
+        progress=65
+    )
     db.add(new_course)
-    db.commit()
-    return {"message": "Success"}
+    db.flush() 
 
-@app.post("/projects")
-def add_project(proj: ProjectCreate, db: Session = Depends(get_db)):
-    new_proj = ProjectDB(**proj.model_dump())
-    db.add(new_proj)
-    db.commit()
-    return {"message": "Success"}
-
-@app.post("/interests")
-def add_interest(interest: InterestCreate, db: Session = Depends(get_db)): 
-    new_interest = InterestDB(user_id=interest.user_id, name=interest.name)
-    db.add(new_interest)
-    db.commit()
-    return {"message": "Success"}
-
-@app.get("/course-analytics/{course_id}")
-def get_course_analytics(course_id: int):
-    return {
-        "average": "78.5%",
-        "at_risk": 8,
-        "trend": [70, 75, 72, 80, 78],
-        "distribution": {"A": 12, "B": 18, "C": 14, "D": 5, "F": 3}
-    }
-
-@app.post("/profile/sync-scholar/{user_id}")
-def sync_google_scholar(user_id: int, db: Session = Depends(get_db)):
-    try:
-        # Simulation of finding new publications
-        new_pubs = [
-            {"title": "Advanced NLP in Modern Education", "journal": "IEEE Tech", "year": 2026, "citations": 15},
-            {"title": "AI Ethics in Academic Research", "journal": "Nature Science", "year": 2025, "citations": 42}
-        ]
-
-        for pub_data in new_pubs:
-            exists = db.query(PublicationDB).filter(
-                PublicationDB.user_id == user_id, 
-                PublicationDB.title == pub_data["title"]
-            ).first()
-            
-            if not exists:
-                new_pub = PublicationDB(user_id=user_id, **pub_data)
-                db.add(new_pub)
-        
-        db.commit()
-        return {"message": "Sync complete"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    for _, row in df.iterrows():
+        new_student = StudentDB(
+            student_id=str(row['id']), name=row['name'], 
+            department=row['department'], course_id=new_course.id
+        )
+        db.add(new_student)
     
+    db.commit()
+    return {"message": "Success", "students_enrolled": student_count}
+
 @app.get("/professors/{user_id}/courses", response_model=List[CourseResponse])
 def get_courses(user_id: int, db: Session = Depends(get_db)):
-    """NEW: Dynamic fetch for the Courses List Screen"""
     return db.query(CourseDB).filter(CourseDB.user_id == user_id).all()
 
 @app.get("/course-analytics/{course_id}")
 def get_analytics(course_id: int, db: Session = Depends(get_db)):
-    """NEW: Dynamic fetch for Course Details Dashboard"""
     course = db.query(CourseDB).filter(CourseDB.id == course_id).first()
     if not course: raise HTTPException(status_code=404)
     return {
-        "average": "78.5%",
-        "at_risk": 8,
-        "trend": [70, 75, 72, 80, 78],
+        "average": "78.5%", "at_risk": 8, "trend": [70, 75, 72, 80, 78],
         "distribution": {"A": 12, "B": 18, "C": 14, "D": 5, "F": 3}
     }
+
+@app.put("/courses/{course_id}")
+def update_course(course_id: int, update_data: CourseCreate, db: Session = Depends(get_db)):
+    db_course = db.query(CourseDB).filter(CourseDB.id == course_id).first()
+    if not db_course: raise HTTPException(status_code=404)
+    db_course.code, db_course.name, db_course.semester, db_course.students = \
+        update_data.code, update_data.name, update_data.semester, update_data.students
+    db.commit()
+    return {"message": "Updated"}
+
+@app.delete("/courses/{course_id}")
+def delete_course(course_id: int, db: Session = Depends(get_db)):
+    db_course = db.query(CourseDB).filter(CourseDB.id == course_id).first()
+    if not db_course: raise HTTPException(status_code=404)
+    db.delete(db_course)
+    db.commit()
+    return {"message": "Deleted"}

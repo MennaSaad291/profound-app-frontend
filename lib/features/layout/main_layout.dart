@@ -77,6 +77,7 @@ class MainLayout extends StatelessWidget {
       backgroundColor: Colors.white,
       child: Column(
         children: [
+          // 1. Fixed Header Section
           DrawerHeader(
             decoration: const BoxDecoration(color: Colors.white),
             child: Row(
@@ -99,15 +100,24 @@ class MainLayout extends StatelessWidget {
               ],
             ),
           ),
-          _navItem(context, Icons.grid_view_rounded, "Dashboard", '/dashboard', currentRoute == '/dashboard'),
-          _navItem(context, Icons.book_outlined, "My Courses", '/courses', currentRoute == '/courses'),
-          _navItem(context, Icons.assignment_outlined, "Grading", '/grading', currentRoute == '/grading'),
-          _navItem(context, Icons.analytics_outlined, "Analytics & Reports", '/analytics', currentRoute == '/analytics'),
-          _navItem(context, Icons.person_outline, "Academic Profile", '/profile', currentRoute == '/profile'),
-          _navItem(context, Icons.science_outlined, "Research", '/research', currentRoute == '/research'),
-          _navItem(context, Icons.settings_outlined, "Settings", '/settings', currentRoute == '/settings'),
-                    
-          const Spacer(),
+
+          // 2. Scrollable Navigation Section (Fixes the Yellow Ribbon Error)
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _navItem(context, Icons.grid_view_rounded, "Dashboard", '/dashboard', currentRoute == '/dashboard'),
+                _navItem(context, Icons.book_outlined, "My Courses", '/courses', currentRoute == '/courses'),
+                _navItem(context, Icons.assignment_outlined, "Grading", '/grading', currentRoute == '/grading'),
+                _navItem(context, Icons.analytics_outlined, "Analytics & Reports", '/analytics', currentRoute == '/analytics'),
+                _navItem(context, Icons.person_outline, "Academic Profile", '/profile', currentRoute == '/profile'),
+                _navItem(context, Icons.science_outlined, "Research", '/research', currentRoute == '/research'),
+                _navItem(context, Icons.settings_outlined, "Settings", '/settings', currentRoute == '/settings'),
+              ],
+            ),
+          ),
+
+          // 3. Fixed Bottom Section (Logout stays at bottom if there is space)
           const Divider(indent: 20, endIndent: 20),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),

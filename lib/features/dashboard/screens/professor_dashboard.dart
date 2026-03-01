@@ -170,7 +170,7 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
             const SizedBox(height: 12),
             InkWell(
               onTap: onLinkPressed,
-              child: Text(linkText, style: const TextStyle(color: const Color(0xFF9333EA), fontWeight: FontWeight.w600)),
+              child: Text(linkText, style: const TextStyle(color: Color(0xFF9333EA), fontWeight: FontWeight.w600)),
             )
           ]
         ],

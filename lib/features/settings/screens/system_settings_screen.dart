@@ -280,7 +280,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   Switch(
                     value: _twoFactorEnabled,
                     onChanged: (v) => setState(() => _twoFactorEnabled = v),
-                    activeColor: AppColors.primaryPurple,
+                    activeThumbColor: AppColors.primaryPurple,
                   ),
                 ],
               ),
@@ -380,7 +380,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               Text('Feedback Tone', style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _feedbackTone,
+                initialValue: _feedbackTone,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
@@ -432,7 +432,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                     Switch(
                       value: _detailedFeedback,
                       onChanged: (v) => setState(() => _detailedFeedback = v),
-                      activeColor: AppColors.primaryPurple,
+                      activeThumbColor: AppColors.primaryPurple,
                     ),
                   ],
                 ),
@@ -491,7 +491,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               Text(subtitle, style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
             ],
           ),
-          Switch(value: value, onChanged: onChanged, activeColor: AppColors.primaryPurple),
+          Switch(value: value, onChanged: onChanged, activeThumbColor: AppColors.primaryPurple),
         ],
       ),
     );

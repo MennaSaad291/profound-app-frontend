@@ -1010,7 +1010,7 @@ class _FullAnalyticsReportsModuleState
               children: [
                 ...errorAnalysisData
                     .map((category) => _buildErrorCategoryCard(category))
-                    .toList(),
+                    ,
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -1277,7 +1277,7 @@ class _FullAnalyticsReportsModuleState
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
@@ -1406,7 +1406,7 @@ class _FullAnalyticsReportsModuleState
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           isExpanded: true,
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
