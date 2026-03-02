@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/constants/app_colors.dart';
 
 class ProfessorDashboard extends StatefulWidget {
   const ProfessorDashboard({super.key});
@@ -79,20 +78,23 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     onTap: () => Navigator.pushNamed(context, '/grading'),
                   ),
                   const SizedBox(height: 12),
+                  
+                  // --- FIXED: Connected to the AI Lecture Screen ---
                   _buildFeatureButton(
                     title: "Generate Lecture Materials",
                     subtitle: "AI-powered content creation",
                     icon: Icons.menu_book,
                     gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
-                    onTap: () {}, 
+                    onTap: () => Navigator.pushNamed(context, '/generate_lecture'), 
                   ),
+                  
                   const SizedBox(height: 12),
                   _buildFeatureButton(
                     title: "Exam Generation Tools",
                     subtitle: "Create assessments instantly",
                     icon: Icons.edit_note,
                     gradient: const [Color(0xFF4F46E5), Color(0xFF4338CA)],
-                    onTap: () {}, 
+                    onTap: () {}, // You can connect this one later!
                   ),
                   const SizedBox(height: 32),
                 ],

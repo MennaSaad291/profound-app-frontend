@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 
 class ProfessorProfileScreen extends StatefulWidget {
   const ProfessorProfileScreen({super.key});
@@ -121,43 +122,76 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
     );
   }
 
-  void _showAddCourseSheet() {
+ void _showAddCourseSheet() {
     final codeCon = TextEditingController();
     final nameCon = TextEditingController();
     final semCon = TextEditingController();
+    final schedCon = TextEditingController();
+    final roomCon = TextEditingController();
+    PlatformFile? excelFile;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Add New Course", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-            TextField(controller: codeCon, decoration: const InputDecoration(labelText: "Course Code")),
-            TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Course Name")),
-            TextField(controller: semCon, decoration: const InputDecoration(labelText: "Semester")),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
-              onPressed: () => _submitData('/courses', {
-                "user_id": profileData!['id'],
-                "code": codeCon.text,
-                "name": nameCon.text,
-                "semester": semCon.text,
-                "students": 0,
-                "status": "active",
-              }),
-              child: const Text("Save Course", style: TextStyle(color: Colors.white)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Add New Course", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextField(controller: codeCon, decoration: const InputDecoration(labelText: "Course Code")),
+                TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Course Name")),
+                TextField(controller: semCon, decoration: const InputDecoration(labelText: "Semester (e.g. Fall 2025)")),
+                TextField(controller: schedCon, decoration: const InputDecoration(labelText: "Schedule (e.g. Mon, Wed 10:00 AM)")),
+                TextField(controller: roomCon, decoration: const InputDecoration(labelText: "Room (e.g. Building A, 201)")),
+                const SizedBox(height: 20),
+                // EXCEL UPLOAD LOGIC
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    FilePickerResult? r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
+                    if (r != null) setSheetState(() => excelFile = r.files.first);
+                  },
+                  icon: const Icon(Icons.upload_file),
+                  label: Text(excelFile == null ? "Upload Student Excel" : "File: ${excelFile!.name}"),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
+                  onPressed: () async {
+                    if (excelFile == null || profileData == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload an Excel file")));
+                      return;
+                    }
+                    
+                    var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/courses-with-students'));
+                    request.fields['user_id'] = profileData!['id'].toString();
+                    request.fields['code'] = codeCon.text;
+                    request.fields['name'] = nameCon.text;
+                    request.fields['semester'] = semCon.text;
+                    request.fields['schedule'] = schedCon.text;
+                    request.fields['room'] = roomCon.text;
+                    request.files.add(http.MultipartFile.fromBytes('file', excelFile!.bytes!, filename: excelFile!.name));
+
+                    var response = await request.send();
+                    if (response.statusCode == 200) {
+                      Navigator.pop(context);
+                      _fetchProfile(profileData!['id']); // Refreshes Profile screen instantly
+                    }
+                  },
+                  child: const Text("Save Course", style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(height: 30),
+              ],
             ),
-            const SizedBox(height: 30),
-          ],
+          ),
         ),
       ),
     );
   }
-
+  
   void _showAddPubSheet() {
     final tCon = TextEditingController();
     final jCon = TextEditingController();

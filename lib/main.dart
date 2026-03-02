@@ -4,6 +4,7 @@ import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/profile_screen.dart';
 import 'features/courses/screens/courses_list_screen.dart';
 import 'features/courses/screens/course_details_screen.dart';
+import 'features/courses/screens/ai_lecture_screen.dart';
 import 'features/dashboard/screens/professor_dashboard.dart';
 import 'features/layout/main_layout.dart';
 import 'features/grading/ai_grading_module.dart';
@@ -38,6 +39,7 @@ class ProfoundApp extends StatelessWidget {
         '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
         '/settings': (context) => const SystemSettingsScreen(),
+        '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
       },
       home: const LoginScreen(),
     );

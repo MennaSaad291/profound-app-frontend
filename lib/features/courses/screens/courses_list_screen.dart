@@ -6,36 +6,33 @@ import 'package:file_picker/file_picker.dart';
 
 class CoursesModuleScreen extends StatefulWidget {
   const CoursesModuleScreen({super.key});
-
   @override
   State<CoursesModuleScreen> createState() => _CoursesModuleScreenState();
 }
 
 class _CoursesModuleScreenState extends State<CoursesModuleScreen> {
-  String searchQuery = '';
-  List<dynamic> liveCourses = [];
+  Map<String, dynamic>? profileData;
   bool _isLoading = true;
-  int? currentUserId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args.containsKey('id')) {
-      currentUserId = args['id'];
-      _fetchCourses();
+    final int? userId = args?['id'];
+
+    if (userId != null && profileData == null) {
+      _fetchProfile(userId);
     }
   }
 
-  Future<void> _fetchCourses() async {
-    if (currentUserId == null) return;
-    final url = Uri.parse('http://localhost:8000/professors/$currentUserId/courses');
+  Future<void> _fetchProfile(int userId) async {
+    final url = Uri.parse('http://localhost:8000/profile/$userId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         if (!mounted) return;
         setState(() {
-          liveCourses = jsonDecode(response.body);
+          profileData = jsonDecode(response.body);
           _isLoading = false;
         });
       }
@@ -45,284 +42,151 @@ class _CoursesModuleScreenState extends State<CoursesModuleScreen> {
     }
   }
 
-  Future<void> _deleteCourse(int courseId) async {
-    final response = await http.delete(Uri.parse('http://localhost:8000/courses/$courseId'));
+  Future<void> _submitData(String path, Map<String, dynamic> body) async {
+    final url = Uri.parse('http://localhost:8000$path');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
     if (response.statusCode == 200) {
-      _fetchCourses();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Course deleted")));
+      if (!mounted) return;
+      Navigator.pop(context); 
+      _fetchProfile(profileData!['id']); 
     }
+  }
+
+  // --- INTERACTION SHEETS ---
+  void _showAddInterestSheet() {
+    final interestCon = TextEditingController();
+    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))), builder: (context) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("Add Research Interest", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)), TextField(controller: interestCon, decoration: const InputDecoration(labelText: "Interest Name")), const SizedBox(height: 20), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)), onPressed: () => _submitData('/interests', {"user_id": profileData!['id'], "name": interestCon.text}), child: const Text("Save Interest", style: TextStyle(color: Colors.white))), const SizedBox(height: 30)])));
+  }
+
+  void _showAddProjectSheet() {
+    final titleCon = TextEditingController();
+    final teamCon = TextEditingController();
+    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))), builder: (context) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("Add Graduation Project", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)), TextField(controller: titleCon, decoration: const InputDecoration(labelText: "Project Title")), TextField(controller: teamCon, decoration: const InputDecoration(labelText: "Team")), const SizedBox(height: 20), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)), onPressed: () => _submitData('/projects', {"user_id": profileData!['id'], "title": titleCon.text, "team": teamCon.text, "year": "2024-2025", "status": "ongoing"}), child: const Text("Save Project", style: TextStyle(color: Colors.white))), const SizedBox(height: 30)])));
   }
 
   void _showAddCourseSheet() {
     final codeCon = TextEditingController();
     final nameCon = TextEditingController();
+    final semCon = TextEditingController();
+    final schedCon = TextEditingController();
+    final roomCon = TextEditingController();
     PlatformFile? excelFile;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Add New Course", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextField(controller: codeCon, decoration: const InputDecoration(labelText: "Course Code")),
-              TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Course Name")),
-              const SizedBox(height: 20),
-              // EXCEL UPLOAD LOGIC
-              ElevatedButton.icon(
-                onPressed: () async {
-                  FilePickerResult? r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
-                  if (r != null) setSheetState(() => excelFile = r.files.first);
-                },
-                icon: const Icon(Icons.upload_file),
-                label: Text(excelFile == null ? "Upload Student Excel" : "File: ${excelFile!.name}"),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
-                onPressed: () async {
-                  if (excelFile == null || currentUserId == null) return;
-                  var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/courses-with-students'));
-                  request.fields['user_id'] = currentUserId.toString();
-                  request.fields['code'] = codeCon.text;
-                  request.fields['name'] = nameCon.text;
-                  request.fields['semester'] = "Fall 2025";
-                  request.files.add(http.MultipartFile.fromBytes('file', excelFile!.bytes!, filename: excelFile!.name));
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Add New Course", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextField(controller: codeCon, decoration: const InputDecoration(labelText: "Course Code")),
+                TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Course Name")),
+                TextField(controller: semCon, decoration: const InputDecoration(labelText: "Semester (e.g. Fall 2025)")),
+                TextField(controller: schedCon, decoration: const InputDecoration(labelText: "Schedule (e.g. Mon, Wed 10:00 AM)")),
+                TextField(controller: roomCon, decoration: const InputDecoration(labelText: "Room (e.g. Building A, 201)")),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    FilePickerResult? r = await FilePicker.platform.pickFiles(
+                      type: FileType.custom, allowedExtensions: ['xlsx'], withData: true,
+                    );
+                    if (r != null) setSheetState(() => excelFile = r.files.first);
+                  },
+                  icon: const Icon(Icons.upload_file),
+                  label: Text(excelFile == null ? "Upload Student Excel (Optional)" : "File: ${excelFile!.name}"),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
+                  onPressed: () async {
+                    if (profileData == null) return;
+                    try {
+                      var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/courses-with-students'));
+                      request.fields['user_id'] = profileData!['id'].toString();
+                      request.fields['code'] = codeCon.text;
+                      request.fields['name'] = nameCon.text;
+                      request.fields['semester'] = semCon.text.isNotEmpty ? semCon.text : "TBA";
+                      request.fields['schedule'] = schedCon.text.isNotEmpty ? schedCon.text : "TBA";
+                      request.fields['room'] = roomCon.text.isNotEmpty ? roomCon.text : "TBA";
+                      
+                      if (excelFile != null && excelFile!.bytes != null) {
+                        request.files.add(http.MultipartFile.fromBytes('file', excelFile!.bytes!, filename: excelFile!.name));
+                      }
 
-                  var response = await request.send();
-                  if (response.statusCode == 200) {
-                    Navigator.pop(context);
-                    _fetchCourses();
-                  }
-                },
-                child: const Text("Save Course", style: TextStyle(color: Colors.white)),
-              ),
-              const SizedBox(height: 30),
-            ],
+                      var response = await request.send();
+                      if (response.statusCode == 200) {
+                        Navigator.pop(context);
+                        _fetchProfile(profileData!['id']); // Refresh Profile instantly
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Course Saved Successfully!")));
+                      } else {
+                        var err = await response.stream.bytesToString();
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Server Error: $err")));
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                    }
+                  },
+                  child: const Text("Save Course", style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _showAddPubSheet() {
+    final tCon = TextEditingController();
+    final jCon = TextEditingController();
+    final yCon = TextEditingController();
+    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))), builder: (context) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("Add Publication", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)), TextField(controller: tCon, decoration: const InputDecoration(labelText: "Title")), TextField(controller: jCon, decoration: const InputDecoration(labelText: "Journal")), TextField(controller: yCon, decoration: const InputDecoration(labelText: "Year")), const SizedBox(height: 20), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)), onPressed: () => _submitData('/publications', {"user_id": profileData!['id'], "title": tCon.text, "journal": jCon.text, "year": int.tryParse(yCon.text) ?? 2026, "citations": 0}), child: const Text("Save Publication", style: TextStyle(color: Colors.white))), const SizedBox(height: 30)])));
+  }
+
+  void _showEditProfileSheet() {
+    final nameCon = TextEditingController(text: profileData!['full_name']);
+    final deptCon = TextEditingController(text: profileData!['department']);
+    final bioCon = TextEditingController(text: profileData!['bio']);
+    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))), builder: (context) => Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("Edit Profile", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)), TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Full Name")), TextField(controller: deptCon, decoration: const InputDecoration(labelText: "Department")), TextField(controller: bioCon, maxLines: 3, decoration: const InputDecoration(labelText: "Bio")), const SizedBox(height: 24), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)), onPressed: () => _submitData('/profile/update/${profileData!['id']}', {"full_name": nameCon.text, "department": deptCon.text, "bio": bioCon.text}), child: const Text("Save Changes", style: TextStyle(color: Colors.white))), const SizedBox(height: 30)])));
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
-    
-    final filtered = liveCourses.where((c) => 
-      c['name'].toLowerCase().contains(searchQuery.toLowerCase()) || 
-      c['code'].toLowerCase().contains(searchQuery.toLowerCase())).toList();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildQuickStats(), // Restored Quick Stats Tiles
-            _buildSearchAndAddHeader(), // Restored Search and Add UI
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) => _buildCourseCard(filtered[index]),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickStats() {
-    int totalStudents = liveCourses.fold(0, (sum, item) => sum + (item['students'] as int));
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          _statTile(Icons.book, "${liveCourses.length}", "Active\nCourses", Colors.purple),
-          const SizedBox(width: 10),
-          _statTile(Icons.people, "$totalStudents", "Total\nStudents", Colors.amber),
-          const SizedBox(width: 10),
-          _statTile(Icons.assignment, "25", "Pending\nGrades", Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _statTile(IconData icon, String val, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
-            Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchAndAddHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  onChanged: (v) => setState(() => searchQuery = v),
-                  decoration: InputDecoration(
-                    hintText: "Search courses...",
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.tune, color: Colors.grey),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _showAddCourseSheet,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text("Add New Course", style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCourseCard(Map<String, dynamic> course) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15)],
-      ),
-      child: Column(
-        children: [
-          // Purple Header Section
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(colors: [Color(0xFF9333EA), Color(0xFF7E22CE)]),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(course['code'] ?? "", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
-                          child: const Text("Active", style: TextStyle(color: Colors.white, fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: Colors.white70),
-                      onSelected: (val) {
-                        if (val == 'delete') _deleteCourse(course['id']);
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'delete', child: Text("Delete Course", style: TextStyle(color: Colors.red))),
-                      ],
-                    ),
-                  ],
-                ),
-                Text(course['name'] ?? "", style: const TextStyle(color: Colors.white, fontSize: 16)),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Course Progress", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("${course['progress'] ?? 65}%", style: const TextStyle(color: Colors.white, fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(value: (course['progress'] ?? 65) / 100, backgroundColor: Colors.white24, color: Colors.white),
-              ],
-            ),
-          ),
-          // White Details Section
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _metaItem(Icons.calendar_today_outlined, course['semester'] ?? "Fall 2025", "Semester"),
-                    const Spacer(),
-                    _metaItem(Icons.people_outline, "${course['students'] ?? 0}", "Students"),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(children: [
-                  const Icon(Icons.access_time, size: 18, color: Color(0xFF9333EA)),
-                  const SizedBox(width: 8),
-                  Text(course['schedule'] ?? "Mon, Wed 10:00 AM - 11:30 AM", style: const TextStyle(fontSize: 13)),
-                ]),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 26),
-                  child: Text(course['room'] ?? "Building A, Room 201", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ),
-                const SizedBox(height: 20),
-                // Restored Metric Tiles
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  _metricTile("8", "Assignments", const Color(0xFFF5F3FF), const Color(0xFF9333EA)),
-                  _metricTile("12", "Pending", const Color(0xFFFFFBEB), const Color(0xFFD97706)),
-                  _metricTile("65%", "Complete", const Color(0xFFF0FDF4), const Color(0xFF16A34A)),
-                ]),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7E22CE),
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => Navigator.pushNamed(context, '/course_details', arguments: course),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.trending_up, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      const Text("View Course Dashboard", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
+      color: const Color(0xFFF8F9FE),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 20),
+                  _buildAboutMe(),
+                  const SizedBox(height: 20),
+                  _buildEngagementMetrics(),
+                  const SizedBox(height: 20),
+                  _buildCollapsibleSection(icon: Icons.book_outlined, title: "Research & Publications", subtitle: "${(profileData!['publications'] as List).length} publications", items: profileData!['publications'] ?? [], tag: 'pubs', onAdd: _showAddPubSheet),
+                  _buildCollapsibleSection(icon: Icons.school_outlined, title: "Courses Taught", subtitle: "${(profileData!['courses'] as List).length} courses", items: profileData!['courses'] ?? [], tag: 'courses', onAdd: _showAddCourseSheet),
+                  _buildCollapsibleSection(icon: Icons.card_membership_outlined, title: "Graduation Projects", subtitle: "${(profileData!['projects'] as List).length} projects", items: profileData!['projects'] ?? [], tag: 'projects', onAdd: _showAddProjectSheet),
+                  const SizedBox(height: 20),
+                  _buildResearchInterests(),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ],
@@ -330,21 +194,50 @@ class _CoursesModuleScreenState extends State<CoursesModuleScreen> {
     );
   }
 
-  Widget _metricTile(String v, String l, Color bg, Color text) => Container(
-    width: 95, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-    child: Column(children: [Text(v, style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 14)), Text(l, style: TextStyle(color: text, fontSize: 10))]),
-  );
-
-  Widget _metaItem(IconData icon, String val, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: const Color(0xFF9333EA), size: 20),
-        const SizedBox(width: 8),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-        ]),
-      ],
+  Widget _buildProfileHeader() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20)]),
+      child: Stack(
+        children: [
+          Row(children: [Container(width: 80, height: 80, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF9333EA)), child: const Icon(Icons.person_outline, color: Colors.white, size: 40)), const SizedBox(width: 20), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(profileData!['full_name'] ?? "", style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Row(children: [const Icon(Icons.school, size: 16, color: Color(0xFF9333EA)), const SizedBox(width: 6), Text("University Professor", style: GoogleFonts.inter(color: const Color(0xFF9333EA), fontWeight: FontWeight.w600, fontSize: 14))]), Text(profileData!['department'] ?? "", style: const TextStyle(color: Colors.grey, fontSize: 13))]))]),
+          Positioned(right: 0, top: 0, child: GestureDetector(onTap: _showEditProfileSheet, child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFF9333EA), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.edit_outlined, color: Colors.white, size: 18)))),
+        ],
+      ),
     );
+  }
+
+  Widget _buildAboutMe() {
+    return Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFFFAF9FF), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF3E8FF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.menu_book_rounded, color: Color(0xFF9333EA), size: 20), const SizedBox(width: 8), Text("About Me", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15))]), const SizedBox(height: 12), Text(profileData!['bio'] ?? "", style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87))]));
+  }
+
+  Widget _buildEngagementMetrics() {
+    final metrics = profileData!['metrics'] ?? {};
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Icon(Icons.auto_graph_rounded, color: Color(0xFF9333EA), size: 18), const SizedBox(width: 8), Text("Engagement Metrics", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15))]), const SizedBox(height: 16), GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 3, children: [_metricTile("Citations", "${metrics['citations'] ?? 0}", const Color(0xFFF0FDF4), const Color(0xFF166534), Icons.chat_bubble_outline_rounded), _metricTile("Students", "${metrics['students'] ?? 0}", const Color(0xFFEFF6FF), const Color(0xFF1E40AF), Icons.people_alt_rounded), _metricTile("Papers Reviewed", "${metrics['papers'] ?? 0}", const Color(0xFFFAF5FF), const Color(0xFF6B21A8), Icons.article_rounded), _metricTile("Projects", "${metrics['projects'] ?? 0}", const Color(0xFFFFFBEB), const Color(0xFF92400E), Icons.school_rounded)])]);
+  }
+
+  Widget _metricTile(String label, String value, Color bg, Color text, IconData icon) {
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Row(children: [Icon(icon, size: 14, color: text), const SizedBox(width: 6), Flexible(child: Text(label, style: GoogleFonts.inter(color: text, fontSize: 10, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis))]), const SizedBox(height: 4), Text(value, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: text))]));
+  }
+
+  Widget _buildCollapsibleSection({required IconData icon, required String title, required String subtitle, required List items, required String tag, required VoidCallback onAdd}) {
+    return Container(margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))), child: ExpansionTile(leading: Icon(icon, color: const Color(0xFF9333EA)), title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15)), subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)), children: [Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Row(children: [if (tag == 'pubs') Expanded(child: ElevatedButton.icon(onPressed: () async { setState(() => _isLoading = true); await Future.delayed(const Duration(seconds: 1)); _fetchProfile(profileData!['id']); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Synced with Google Scholar"))); }, icon: const Icon(Icons.link, size: 16, color: Colors.white), label: const Text("Sync Scholar", style: TextStyle(fontSize: 11, color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)))), if (tag == 'pubs') const SizedBox(width: 8), Expanded(child: ElevatedButton.icon(onPressed: onAdd, icon: const Icon(Icons.add, size: 16, color: Colors.white), label: Text(tag == 'courses' ? "Add Course" : "Add New", style: const TextStyle(fontSize: 11, color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA))))])), ...items.map((item) { if (tag == 'pubs') return _buildPublicationItem(item); if (tag == 'courses') return _buildCourseItem(item); if (tag == 'projects') return _buildProjectItem(item); return const SizedBox(); }), const SizedBox(height: 12)]));
+  }
+
+  Widget _buildPublicationItem(Map<String, dynamic> item) {
+    return Container(margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), padding: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['title'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.4)), const SizedBox(height: 4), Text("${item['journal']} • ${item['year']}", style: const TextStyle(fontSize: 11, color: Colors.grey)), const SizedBox(height: 8), Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(4)), child: Row(children: [const Icon(Icons.format_quote, size: 12, color: Color(0xFF166534)), Text(" ${item['citations']}", style: const TextStyle(color: Color(0xFF166534), fontSize: 11, fontWeight: FontWeight.bold))])), const SizedBox(width: 8), const Text("Dr. Sarah Johnson +1", style: TextStyle(fontSize: 11, color: Colors.grey))])]));
+  }
+
+  Widget _buildCourseItem(Map<String, dynamic> item) {
+    return Container(margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), padding: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(item['code'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(10)), child: Text(item['status']?.toUpperCase() ?? "ACTIVE", style: const TextStyle(color: Color(0xFF166534), fontSize: 9, fontWeight: FontWeight.bold)))]), Text(item['name'] ?? "", style: const TextStyle(fontSize: 12, color: Colors.grey)), const SizedBox(height: 8), Row(children: [const Icon(Icons.calendar_today, size: 12, color: Colors.grey), const SizedBox(width: 4), Text(item['semester'] ?? "Fall 2025", style: const TextStyle(fontSize: 11, color: Colors.grey)), const SizedBox(width: 12), const Icon(Icons.people_outline, size: 12, color: Colors.grey), const SizedBox(width: 4), Text("${item['students'] ?? 0} students", style: const TextStyle(fontSize: 11, color: Colors.grey))]), const SizedBox(height: 12), SizedBox(width: double.infinity, height: 32, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, '/course_details', arguments: item), icon: const Icon(Icons.bar_chart, size: 14, color: Color(0xFF9333EA)), label: const Text("View Analytics", style: TextStyle(fontSize: 11, color: Color(0xFF9333EA))), style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFF3E8FF)), backgroundColor: const Color(0xFFFAF5FF))))]));
+  }
+
+  Widget _buildProjectItem(Map<String, dynamic> item) {
+    return Container(margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), padding: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(item['title'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(10)), child: Text(item['status']?.toLowerCase() ?? "ongoing", style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 9, fontWeight: FontWeight.bold)))]), const SizedBox(height: 4), Text("Year: ${item['year'] ?? "2024-2025"}", style: const TextStyle(fontSize: 11, color: Colors.grey)), const SizedBox(height: 8), Wrap(spacing: 6, runSpacing: 6, children: (item['team']?.toString().split(',') ?? ["Student A", "Student B"]).map<Widget>((name) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFAF5FF), borderRadius: BorderRadius.circular(4)), child: Text(name.trim(), style: const TextStyle(color: Color(0xFF7E22CE), fontSize: 10, fontWeight: FontWeight.w500)))).toList())]));
+  }
+
+  Widget _buildResearchInterests() {
+    final List<String> interests = List<String>.from(profileData!['interests'] ?? []);
+    return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [const Icon(Icons.book_rounded, color: Color(0xFF9333EA), size: 20), const SizedBox(width: 8), Text("Research Interests", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15))]), const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9333EA))]), const SizedBox(height: 16), Wrap(spacing: 8, runSpacing: 10, children: interests.map((interest) => Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFFAF5FF), border: Border.all(color: const Color(0xFFD8B4FE)), borderRadius: BorderRadius.circular(20)), child: Text(interest, style: const TextStyle(color: Color(0xFF7E22CE), fontSize: 11, fontWeight: FontWeight.w500)))).toList()), const SizedBox(height: 16), OutlinedButton.icon(onPressed: _showAddInterestSheet, icon: const Icon(Icons.add, size: 16), label: const Text("Add Interest", style: TextStyle(fontSize: 13)), style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 44), foregroundColor: Colors.black87, side: const BorderSide(color: Colors.grey), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))]));
   }
 }
