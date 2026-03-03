@@ -193,13 +193,13 @@ class _AILectureScreenState extends State<AILectureScreen> {
                     const SizedBox(height: 20),
                     TextField(controller: _instructionsController, maxLines: 4, decoration: InputDecoration(labelText: "Custom Instructions & Sources", hintText: "e.g., 'Make it highly detailed, use textbook references.'", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
                     const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(isExpanded: true, value: _selectedTheme, decoration: InputDecoration(labelText: "Presentation Theme", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: _themes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (val) => setState(() => _selectedTheme = val!)),
+                    DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedTheme, decoration: InputDecoration(labelText: "Presentation Theme", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), items: _themes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (val) => setState(() => _selectedTheme = val!)),
                     const SizedBox(height: 20),
                     Row(children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: _selectedLevel,
+                          initialValue: _selectedLevel,
                           decoration: InputDecoration(labelText: "Level", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                           items: _levels
                               .map((lvl) => DropdownMenuItem(value: lvl, child: Text(lvl, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)))
@@ -211,7 +211,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
                       Expanded(
                         child: DropdownButtonFormField<int>(
                           isExpanded: true,
-                          value: _selectedPageCount,
+                          initialValue: _selectedPageCount,
                           decoration: InputDecoration(labelText: "Slide Count", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                           items: _pageCounts
                               .map((cnt) => DropdownMenuItem(value: cnt, child: Text(cnt.toString(), style: const TextStyle(fontSize: 12))))
@@ -221,7 +221,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
                       ),
                     ]),
                     const SizedBox(height: 16),
-                    SwitchListTile(title: const Text("Include Media Links", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), subtitle: const Text("Generate clickable YouTube links", style: TextStyle(fontSize: 11)), value: _includeMedia, activeColor: const Color(0xFF9333EA), onChanged: (val) => setState(() => _includeMedia = val)),
+                    SwitchListTile(title: const Text("Include Media Links", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), subtitle: const Text("Generate clickable YouTube links", style: TextStyle(fontSize: 11)), value: _includeMedia, activeThumbColor: const Color(0xFF9333EA), onChanged: (val) => setState(() => _includeMedia = val)),
                     const SizedBox(height: 32),
                     SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _isGenerating ? null : _generateLecture, icon: _isGenerating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.auto_awesome), label: Text(_isGenerating ? "Designing..." : "Generate Presentation", style: const TextStyle(fontWeight: FontWeight.bold)))),
                   ],
