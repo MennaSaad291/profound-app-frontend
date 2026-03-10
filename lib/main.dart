@@ -38,7 +38,15 @@ class ProfoundApp extends StatelessWidget {
         '/grading': (context) => AIGradingModule(onBack: () => Navigator.pop(context)),
         '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
-        '/settings': (context) => const SystemSettingsScreen(),
+        '/settings': (context) {
+          // Extract userId from route arguments passed by the sidebar
+          final args = ModalRoute.of(context)?.settings.arguments;
+          int userId = 0;
+          if (args is Map) {
+            userId = (args['id'] ?? args['user_id'] ?? 0) as int;
+          }
+          return SystemSettingsScreen(userId: userId);
+        },
         '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
       },
       home: const LoginScreen(),

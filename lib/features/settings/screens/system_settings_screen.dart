@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
-  const SystemSettingsScreen({super.key});
+  final int userId;
+  const SystemSettingsScreen({super.key, this.userId = 0});
 
   @override
   State<SystemSettingsScreen> createState() => _SystemSettingsScreenState();
@@ -11,8 +14,10 @@ class SystemSettingsScreen extends StatefulWidget {
 
 class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   String _activeMenu = 'rubrics';
-  bool _showPassword = false;
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
   bool _twoFactorEnabled = false;
+  bool _isChangingPassword = false;
 
   // Notification toggles
   bool _emailNotif = true;
@@ -32,12 +37,13 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     {'id': 4, 'name': 'Lab Assignment Rubric', 'course': 'CS 301', 'criteria': 4, 'lastModified': '2025-11-15'},
   ];
 
-  final _nameController = TextEditingController(text: 'Dr. Ahmed Mohamed');
-  final _emailController = TextEditingController(text: 'ahmed.mohamed@university.edu');
-  final _deptController = TextEditingController(text: 'Computer Science');
-  final _titleController = TextEditingController(text: 'University Professor');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _deptController = TextEditingController();
+  final _titleController = TextEditingController();
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
+  bool _isLoadingProfile = true;
 
   final List<Map<String, dynamic>> _menuItems = [
     {'id': 'account', 'icon': Icons.person_outline, 'label': 'Account & Profile'},
@@ -45,6 +51,34 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     {'id': 'rubrics', 'icon': Icons.description_outlined, 'label': 'Grading & Rubrics'},
     {'id': 'notifications', 'icon': Icons.notifications_outlined, 'label': 'Notifications'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8000/profile/${widget.userId}'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _nameController.text = data['full_name'] ?? '';
+          _emailController.text = data['email'] ?? '';
+          _deptController.text = data['department'] ?? '';
+          _titleController.text = data['bio'] ?? '';
+          _isLoadingProfile = false;
+        });
+      } else {
+        setState(() => _isLoadingProfile = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingProfile = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -56,6 +90,199 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     _newPasswordController.dispose();
     super.dispose();
   }
+
+  Future<void> _updateProfile() async {
+    if (_nameController.text.trim().isEmpty || _deptController.text.trim().isEmpty) {
+      _showSnack('Name and department cannot be empty', isError: true);
+      return;
+    }
+    // Ask for password confirmation before saving
+    final confirmed = await _showPasswordConfirmDialog();
+    if (!confirmed) return;
+  }
+
+  Future<bool> _showPasswordConfirmDialog() async {
+    final passwordController = TextEditingController();
+    bool showPw = false;
+    bool isVerifying = false;
+    String? errorText;
+
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.lock_outline, color: Color(0xFF7C3AED)),
+              const SizedBox(width: 8),
+              Text('Confirm Identity',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Enter your password to save changes',
+                  style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: !showPw,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  errorText: errorText,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2)),
+                  suffixIcon: IconButton(
+                    icon: Icon(showPw ? Icons.visibility_off : Icons.visibility, size: 18),
+                    onPressed: () => setDialogState(() => showPw = !showPw),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey[600])),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: isVerifying
+                  ? null
+                  : () async {
+                      if (passwordController.text.trim().isEmpty) {
+                        setDialogState(() => errorText = 'Please enter your password');
+                        return;
+                      }
+                      setDialogState(() { isVerifying = true; errorText = null; });
+                      try {
+                        final response = await http.post(
+                          Uri.parse('http://localhost:8000/verify-password'),
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode({
+                            'user_id': widget.userId,
+                            'password': passwordController.text.trim(),
+                          }),
+                        );
+                        if (response.statusCode == 200) {
+                          // Password correct — now save profile
+                          Navigator.pop(context, false); // close dialog
+                          await _saveProfile();
+                        } else {
+                          setDialogState(() {
+                            errorText = 'Incorrect password';
+                            isVerifying = false;
+                          });
+                        }
+                      } catch (e) {
+                        setDialogState(() {
+                          errorText = 'Connection error';
+                          isVerifying = false;
+                        });
+                      }
+                    },
+              child: isVerifying
+                  ? const SizedBox(
+                      height: 18, width: 18,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Confirm', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    ) ?? false;
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isLoadingProfile = true);
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:8000/profile/${widget.userId}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'full_name': _nameController.text.trim(),
+          'bio': _titleController.text.trim(),
+          'department': _deptController.text.trim(),
+        }),
+      );
+      if (response.statusCode == 200) {
+        _showSnack('Profile updated successfully!');
+      } else {
+        final body = jsonDecode(response.body);
+        _showSnack(body['detail'] ?? 'Failed to update profile', isError: true);
+      }
+    } catch (e) {
+      _showSnack('Connection error. Please try again.', isError: true);
+    } finally {
+      setState(() => _isLoadingProfile = false);
+    }
+  }
+
+
+  Future<void> _changePassword() async {
+    final currentPw = _currentPasswordController.text.trim();
+    final newPw = _newPasswordController.text.trim();
+
+    // Basic client-side validation
+    if (currentPw.isEmpty || newPw.isEmpty) {
+      _showSnack('Please fill in both password fields', isError: true);
+      return;
+    }
+    if (newPw.length < 6) {
+      _showSnack('New password must be at least 6 characters', isError: true);
+      return;
+    }
+
+
+    setState(() => _isChangingPassword = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/change-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': widget.userId,
+          'current_password': currentPw,
+          'new_password': newPw,
+        }),
+      );
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+        _showSnack('Password updated successfully!');
+      } else {
+        // Show the error message from the backend (e.g. "Current password is incorrect")
+        _showSnack(body['detail'] ?? 'Failed to update password', isError: true);
+      }
+    } catch (e) {
+      _showSnack('Connection error. Please try again.', isError: true);
+    } finally {
+      setState(() => _isChangingPassword = false);
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red[700] : Colors.green,
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +413,9 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   }
 
   Widget _buildAccountSection() {
+    if (_isLoadingProfile) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return _buildCard(
       icon: Icons.person_outline,
       title: 'Profile Information',
@@ -199,11 +429,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           const SizedBox(height: 12),
           _buildTextField('Title', _titleController),
           const SizedBox(height: 20),
-          _buildPrimaryButton('Save Changes', () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile updated!'), backgroundColor: Colors.green),
-            );
-          }),
+          _buildPrimaryButton('Save Changes', _updateProfile),
         ],
       ),
     );
@@ -241,17 +467,90 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         ),
         const SizedBox(height: 14),
 
-        // Change Password
+        // Change Password Card
         _buildCard(
           icon: Icons.lock_outline,
           title: 'Change Password',
           child: Column(
             children: [
-              _buildPasswordField('Current Password', _currentPasswordController),
+              // Current Password
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Current Password',
+                      style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _currentPasswordController,
+                    obscureText: !_showCurrentPassword,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_showCurrentPassword ? Icons.visibility_off : Icons.visibility, size: 18),
+                        onPressed: () => setState(() => _showCurrentPassword = !_showCurrentPassword),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
-              _buildPasswordField('New Password', _newPasswordController),
+
+              // New Password
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New Password',
+                      style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _newPasswordController,
+                    obscureText: !_showNewPassword,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_showNewPassword ? Icons.visibility_off : Icons.visibility, size: 18),
+                        onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
-              _buildPrimaryButton('Update Password', () {}),
+
+              // Update Password Button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isChangingPassword ? null : _changePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPurple,
+                    disabledBackgroundColor: AppColors.primaryPurple.withOpacity(0.6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  child: _isChangingPassword
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text('Update Password',
+                          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
             ],
           ),
         ),
@@ -261,28 +560,24 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         _buildCard(
           icon: Icons.security,
           title: 'Two-Factor Authentication',
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Enable 2FA',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                        Text('Add an extra layer of security',
-                            style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: _twoFactorEnabled,
-                    onChanged: (v) => setState(() => _twoFactorEnabled = v),
-                    activeThumbColor: AppColors.primaryPurple,
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Enable 2FA',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text('Add an extra layer of security',
+                        style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _twoFactorEnabled,
+                onChanged: (v) => setState(() => _twoFactorEnabled = v),
+                activeThumbColor: AppColors.primaryPurple,
               ),
             ],
           ),
@@ -294,7 +589,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget _buildRubricsSection() {
     return Column(
       children: [
-        // Header
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -329,8 +623,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-
-        // Rubrics List
         ..._rubrics.map((rubric) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Container(
@@ -367,10 +659,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
           ),
         )),
-
         const SizedBox(height: 14),
-
-        // AI Config
         _buildCard(
           icon: Icons.settings_outlined,
           title: 'AI Model Configuration',
@@ -477,10 +766,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget _notifTile(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(10)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -536,29 +822,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          obscureText: !_showPassword,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
-            suffixIcon: IconButton(
-              icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-              onPressed: () => setState(() => _showPassword = !_showPassword),
-            ),
           ),
         ),
       ],
