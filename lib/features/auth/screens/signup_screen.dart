@@ -16,8 +16,10 @@ class _SignUpFormState extends State<SignUpForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _showPassword = false;
+  bool _isLoading = false;
 
   Future<void> _registerUser() async {
+    setState(() => _isLoading = true);
     final url = Uri.parse('http://localhost:8000/register');
     try {
       final response = await http.post(
@@ -32,50 +34,34 @@ class _SignUpFormState extends State<SignUpForm> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account created!")));
-        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Account created successfully! Redirecting to login..."),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/login');
+        });
       } else {
         final error = jsonDecode(response.body)['detail'];
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connection failed.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Connection failed")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Widget _buildProfoundHeader() {
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ClipRect(
-              child: Align(
-                alignment: Alignment.center,
-                widthFactor: 0.65,
-                child: Image.asset('assets/images/logo.jpeg', height: 70),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text.rich(
-              TextSpan(
-                children: const [
-                  TextSpan(text: "Prof", style: TextStyle(color: AppColors.darkPurple)),
-                  TextSpan(text: "ound", style: TextStyle(color: AppColors.brandAmber)),
-                ],
-              ),
-              style: GoogleFonts.inter(fontSize: 34, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text("Your university's comprehensive platform for academic excellence",
-            textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textGray500)),
-      ],
-    );
   }
 
   @override
@@ -118,13 +104,8 @@ class _SignUpFormState extends State<SignUpForm> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) return "Password required";
-                    List<String> errors = [];
-                    if (value.length < 8) errors.add("• Min 8 characters");
-                    if (!value.contains(RegExp(r'[A-Z]'))) errors.add("• One uppercase letter");
-                    if (!value.contains(RegExp(r'[a-z]'))) errors.add("• One lowercase letter");
-                    if (!value.contains(RegExp(r'[0-9]'))) errors.add("• One number");
-                    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) errors.add("• One special character");
-                    return errors.isNotEmpty ? "Password must include:\n${errors.join('\n')}" : null;
+                    if (value.length < 8) return "Min 8 characters required";
+                    return null;
                   },
                 ),
                 const SizedBox(height: 40),
@@ -132,9 +113,13 @@ class _SignUpFormState extends State<SignUpForm> {
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: () { if (_formKey.currentState!.validate()) _registerUser(); },
+                    onPressed: _isLoading ? null : () { 
+                      if (_formKey.currentState!.validate()) _registerUser(); 
+                    },
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple),
-                    child: const Text("Create Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Create Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -142,6 +127,33 @@ class _SignUpFormState extends State<SignUpForm> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProfoundHeader() {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipRect(child: Align(alignment: Alignment.center, widthFactor: 0.65, child: Image.asset('assets/images/logo.jpeg', height: 70))),
+            const SizedBox(width: 6),
+            Text.rich(
+              TextSpan(
+                children: const [
+                  TextSpan(text: "Prof", style: TextStyle(color: AppColors.darkPurple)),
+                  TextSpan(text: "ound", style: TextStyle(color: AppColors.brandAmber)),
+                ],
+              ),
+              style: GoogleFonts.inter(fontSize: 34, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text("Your university's platform for academic excellence",
+            textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textGray500)),
+      ],
     );
   }
 

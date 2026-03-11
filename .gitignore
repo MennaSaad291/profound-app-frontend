@@ -1,0 +1,23 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+**/*.g.dart
+
+# Mobile Specific
+/android/app/debug
+/android/app/profile
+/android/app/release
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Sensitive
+.env
