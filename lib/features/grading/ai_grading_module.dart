@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class Submission {
   final int id;
@@ -18,11 +20,23 @@ class Submission {
     this.aiGrade,
     this.plagiarismScore,
   });
+
+  factory Submission.fromJson(Map<String, dynamic> json) {
+    return Submission(
+      id: json['id'],
+      studentName: json['student_name'] ?? 'Unknown',
+      submissionTime: json['submission_time'] ?? '',
+      status: json['status'] ?? 'pending',
+      aiGrade: json['ai_grade'],
+      plagiarismScore: json['plagiarism_score'],
+    );
+  }
 }
 
 class AIGradingModule extends StatefulWidget {
   final VoidCallback onBack;
-
+  // Use 'http://localhost:8000' for Web/Edge
+  static const String baseUrl = 'http://127.0.0.1:8000';
   const AIGradingModule({super.key, required this.onBack});
 
   @override
@@ -32,63 +46,45 @@ class AIGradingModule extends StatefulWidget {
 class _AIGradingModuleState extends State<AIGradingModule> {
   String selectedRubric = 'default';
   bool isDragging = false;
-  List<String> selectedFiles = [];
-  bool _isAnalyzing = false;
 
-  List<Submission> submissions = [
-    Submission(
-      id: 1,
-      studentName: 'Sarah Johnson',
-      submissionTime: '2025-12-01 14:30',
-      status: 'ready',
-      aiGrade: 88,
-      plagiarismScore: 2,
-    ),
-    Submission(
-      id: 2,
-      studentName: 'Michael Chen',
-      submissionTime: '2025-12-01 15:45',
-      status: 'ready',
-      aiGrade: 92,
-      plagiarismScore: 0,
-    ),
-    Submission(
-      id: 3,
-      studentName: 'Emily Rodriguez',
-      submissionTime: '2025-12-01 16:20',
-      status: 'ready',
-      aiGrade: 76,
-      plagiarismScore: 5,
-    ),
-    Submission(
-      id: 4,
-      studentName: 'David Park',
-      submissionTime: '2025-12-02 09:15',
-      status: 'pending',
-      aiGrade: null,
-      plagiarismScore: null,
-    ),
-    Submission(
-      id: 5,
-      studentName: 'Jessica Williams',
-      submissionTime: '2025-12-02 10:30',
-      status: 'pending',
-      aiGrade: null,
-      plagiarismScore: null,
-    ),
-  ];
+  // CHANGED: Use PlatformFile instead of String to store bytes/metadata
+  List<PlatformFile> selectedFiles = [];
+  bool _isAnalyzing = false;
+  List<Submission> submissions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSubmissions();
+  }
+
+  Future<void> fetchSubmissions() async {
+    try {
+      final response = await http.get(Uri.parse('${AIGradingModule.baseUrl}/submissions'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          submissions = data.map((s) => Submission.fromJson(s)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("API Error: $e");
+    }
+  }
 
   Future<void> pickFiles() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx', 'txt'],
+      withData: true, // MANDATORY for Web to access file content
     );
 
     if (result != null) {
       setState(() {
-        selectedFiles = result.files.map((f) => f.name).toList();
+        selectedFiles = result.files; // Store the PlatformFile objects
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("${selectedFiles.length} file(s) selected")),
       );
@@ -96,30 +92,45 @@ class _AIGradingModuleState extends State<AIGradingModule> {
   }
 
   Future<void> runGradingProcess() async {
-    if (selectedFiles.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No files selected to grade")),
-      );
-      return;
-    }
+    if (selectedFiles.isEmpty) return;
 
     setState(() => _isAnalyzing = true);
-    await Future.delayed(const Duration(seconds: 2));
 
-    setState(() {
-      for (var sub in submissions) {
-        if (sub.status == 'pending') {
-          sub.status = 'ready';
-          sub.aiGrade = 85;
-          sub.plagiarismScore = 4;
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${AIGradingModule.baseUrl}/grade'),
+      );
+
+      for (var file in selectedFiles) {
+        if (file.bytes != null) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'files',
+              file.bytes!,
+              filename: file.name,
+            ),
+          );
         }
       }
-      _isAnalyzing = false;
-      selectedFiles.clear();
-    });
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Files uploaded and graded successfully")),
+          );
+        }
+        await fetchSubmissions();
+      }
+    } catch (e) {
+      debugPrint("Grading Error: $e");
+    } finally {
+      if (mounted) setState(() => _isAnalyzing = false);
+    }
   }
 
-  // THE UPDATED REVIEW MODAL (Matching your images)
   void handleReviewClick(Submission submission) {
     showGeneralDialog(
       context: context,
@@ -133,7 +144,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
           body: SafeArea(
             child: Column(
               children: [
-                // Modal Header (Image 1 Style)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   color: const Color(0xFF9333EA),
@@ -160,7 +170,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
@@ -174,18 +183,13 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                                 color: Color(0xFF111827))),
                         const SizedBox(height: 12),
                         const Text(
-                          "In this essay, I will explore the fundamental principles of software design patterns and their application in modern development. Design patterns are reusable solutions to commonly occurring problems in software design. They represent best practices and can speed up the development process by providing tested paradigms.\n\n"
-                              "The Singleton pattern ensures a class has only one instance and provides a global point of access to it. This is particularly useful for managing shared resources such as database connections or configuration settings. The Factory pattern, on the other hand, provides an interface for creating objects in a superclass, but allows subclasses to alter the type of objects that will be created.\n\n"
-                              "Model-View-Controller (MVC) is an architectural pattern that separates an application into three main logical components. This separation of concerns makes the code more maintainable and scalable. The Observer pattern is crucial for implementing distributed event handling systems, where an object maintains a list of dependents and notifies them of state changes.\n\n"
-                              "In conclusion, understanding and properly implementing design patterns is essential for creating robust, maintainable, and scalable software systems.",
+                          "In this essay, I will explore the fundamental principles of software design patterns and their application in modern development...",
                           style: TextStyle(
                               fontSize: 15,
                               color: Color(0xFF374151),
                               height: 1.5),
                         ),
                         const Divider(height: 40),
-
-                        // AI Grade Breakdown
                         const Text('AI Grade Breakdown',
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
@@ -200,10 +204,7 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF7E22CE))),
-
                         const SizedBox(height: 24),
-
-                        // AI-Generated Feedback NLP Warning
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -226,10 +227,7 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 24),
-
-                        // Plagiarism Detection
                         Row(
                           children: [
                             Icon(Icons.warning_amber_rounded,
@@ -253,16 +251,13 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                               '${submission.plagiarismScore}% similarity detected. Please review flagged sections.',
                               style: const TextStyle(color: Color(0xFF92400E))),
                         ),
-
                         const SizedBox(height: 24),
-
-                        // Manual Grade Override
-                        const Row(
-                          children: [
+                        Row(
+                          children: const [
                             Icon(Icons.edit_outlined,
                                 color: Colors.grey, size: 20),
-                            const SizedBox(width: 8),
-                            const Text('Manual Grade Override',
+                            SizedBox(width: 8),
+                            Text('Manual Grade Override',
                                 style: TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.bold)),
                           ],
@@ -279,7 +274,7 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                  "You can adjust the AI-suggested grade based on your professional judgment and additional criteria not captured by the automated analysis.",
+                                  "You can adjust the AI-suggested grade based on your professional judgment...",
                                   style: TextStyle(
                                       fontSize: 13, color: Color(0xFF4B5563))),
                               const SizedBox(height: 16),
@@ -318,14 +313,11 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                     ),
                   ),
                 ),
-
-                // Footer Buttons
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border:
-                    Border(top: BorderSide(color: Colors.grey.shade200)),
+                    border: Border(top: BorderSide(color: Colors.grey.shade200)),
                   ),
                   child: Row(
                     children: [
@@ -345,14 +337,24 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              submission.status = 'graded';
-                              submission.aiGrade =
-                                  int.tryParse(gradeController.text) ??
-                                      submission.aiGrade;
-                            });
-                            Navigator.pop(context);
+                          onPressed: () async {
+                            final int finalScore =
+                                int.tryParse(gradeController.text) ?? 0;
+
+                            try {
+                              final response = await http.put(
+                                Uri.parse('${AIGradingModule.baseUrl}/api/submissions/${submission.id}'),
+                                headers: {"Content-Type": "application/json"},
+                                body: json.encode({"ai_grade": finalScore, "status": "graded"}),
+                              );
+
+                              if (response.statusCode == 200) {
+                                await fetchSubmissions();
+                                if (context.mounted) Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              debugPrint("Update error: $e");
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF9333EA),
@@ -360,9 +362,9 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
+                            children: const [
                               Icon(Icons.check_circle_outline,
                                   color: Colors.white, size: 18),
                               SizedBox(width: 8),
@@ -465,13 +467,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
     }
   }
 
-  Color getPlagiarismColor(int? score) {
-    if (score == null) return Colors.grey.shade400;
-    if (score < 3) return const Color(0xFF10B981);
-    if (score < 10) return Colors.amber.shade600;
-    return Colors.red.shade600;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -485,11 +480,14 @@ class _AIGradingModuleState extends State<AIGradingModule> {
         ),
         child: Column(
           children: [
-            // Original Header with Logo
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF9333EA), Color(0xFF7E22CE), Color(0xFFD97706)],
+                  colors: [
+                    Color(0xFF9333EA),
+                    Color(0xFF7E22CE),
+                    Color(0xFFD97706)
+                  ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -535,13 +533,11 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                 ),
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Grading Setup Card
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -559,11 +555,11 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            children: [
-                              const Icon(Icons.auto_awesome,
+                            children: const [
+                              Icon(Icons.auto_awesome,
                                   color: Color(0xFF9333EA), size: 20),
-                              const SizedBox(width: 8),
-                              const Text('Grading Setup',
+                              SizedBox(width: 8),
+                              Text('Grading Setup',
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
@@ -571,7 +567,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Dropdown
                           const Text('Select Rubric',
                               style: TextStyle(
                                   fontSize: 14,
@@ -598,12 +593,12 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                                       value: 'research',
                                       child: Text('Research Paper Rubric')),
                                 ],
-                                onChanged: (v) => setState(() => selectedRubric = v!),
+                                onChanged: (v) =>
+                                    setState(() => selectedRubric = v!),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Upload Box
                           const Text('Upload Student Files',
                               style: TextStyle(
                                   fontSize: 14,
@@ -625,15 +620,16 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                                   Icon(Icons.upload,
                                       size: 32, color: Colors.grey.shade400),
                                   const SizedBox(height: 8),
-                                  const Text('Drag and drop files here or Browse',
+                                  const Text(
+                                      'Drag and drop files here or Browse',
                                       style: TextStyle(
-                                          fontSize: 14, color: Color(0xFF6B7280))),
+                                          fontSize: 14,
+                                          color: Color(0xFF6B7280))),
                                 ],
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Analyze Button
                           Container(
                             width: double.infinity,
                             height: 50,
@@ -681,7 +677,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Submission List Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -695,7 +690,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    // Submissions
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -703,120 +697,151 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                       itemBuilder: (context, index) {
                         final submission = submissions[index];
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                  color: Colors.grey.shade200,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2))
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
                             ],
                             border: Border.all(color: Colors.grey.shade100),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(submission.studentName,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 4),
-                              Row(children: [
-                                Icon(Icons.access_time,
-                                    size: 14, color: Colors.grey.shade500),
-                                const SizedBox(width: 4),
-                                Text(submission.submissionTime,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade500)),
-                              ]),
-                              const SizedBox(height: 12),
-                              getStatusBadge(submission.status),
-                              const SizedBox(height: 12),
-                              if (submission.status != 'pending') ...[
-                                Row(
-                                  children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        submission.studentName,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF111827),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade500),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            submission.submissionTime,
+                                            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  getStatusBadge(submission.status),
+                                ],
+                              ),
+
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Divider(height: 1, color: Color(0xFFF3F4F6)),
+                              ),
+
+                              // Bottom Section: Grade and Action Button
+                              // --- START OF EDITED PART ---
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 1. AI Grade Section
+                                  if (submission.aiGrade != null)
                                     Expanded(
-                                      child: _buildSmallGradeCard(
-                                          'AI Grade',
-                                          '${submission.aiGrade}%',
-                                          const Color(0xFFF5F0FF),
-                                          const Color(0xFF7E22CE)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('AI Grade',
+                                              style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+                                          Text('${submission.aiGrade}%',
+                                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF7E22CE))),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 12),
+
+                                  if (submission.plagiarismScore != null)
                                     Expanded(
-                                      child: _buildSmallGradeCard(
-                                          'Plagiarism',
-                                          '${submission.plagiarismScore}%',
-                                          Colors.grey.shade50,
-                                          getPlagiarismColor(
-                                              submission.plagiarismScore)),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Plagiarism',
+                                              style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFFF7ED),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFFFFEDD5)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFC2410C)),
+                                                const SizedBox(width: 4),
+                                                Text('${submission.plagiarismScore}% Match',
+                                                    style: const TextStyle(fontSize: 12, color: Color(0xFFC2410C), fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              if (submission.status == 'ready')
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 45,
-                                  child: ElevatedButton(
-                                    onPressed: () => handleReviewClick(submission),
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF9333EA),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                            BorderRadius.circular(8))),
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.description,
-                                            color: Colors.white, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('Review & Finalize',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              SizedBox(
+                                width: double.infinity,
+                                child: submission.status == 'ready'
+                                    ? ElevatedButton.icon(
+                                  onPressed: () => handleReviewClick(submission),
+                                  icon: const Icon(Icons.file_open_outlined, size: 18, color: Colors.white),
+                                  label: const Text('Review & Finalize',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF9333EA),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    elevation: 0,
+                                  ),
+                                )
+                                    : Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(10)
+                                  ),
+                                  child: Text(
+                                    submission.status == 'graded' ? 'Analysis Complete' : 'Awaiting AI Analysis',
+                                    style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
                                   ),
                                 ),
+                              ),
                             ],
                           ),
                         );
                       },
-                    ),
+                    )
                   ],
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSmallGradeCard(String label, String value, Color bg, Color textCol) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12, color: textCol, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 22, color: textCol, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }
