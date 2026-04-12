@@ -146,7 +146,7 @@ class _AIGradingModuleState extends State<AIGradingModule> {
   }
 
   Future<void> pickFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx', 'txt'],

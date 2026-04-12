@@ -8,14 +8,18 @@
       "version": "1.0.0+1",
       "dependencies": [
         "cupertino_icons",
+        "dio",
         "file_picker",
         "fl_chart",
         "flutter",
         "flutter_markdown",
         "google_fonts",
         "http",
+        "intl",
         "lucide_icons",
+        "open_file",
         "path_provider",
+        "syncfusion_flutter_pdf",
         "url_launcher"
       ],
       "devDependencies": [
@@ -46,6 +50,55 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "dio",
+      "version": "5.9.2",
+      "dependencies": [
+        "async",
+        "collection",
+        "dio_web_adapter",
+        "http_parser",
+        "meta",
+        "mime",
+        "path"
+      ]
+    },
+    {
+      "name": "open_file",
+      "version": "3.5.11",
+      "dependencies": [
+        "flutter",
+        "open_file_android",
+        "open_file_ios",
+        "open_file_linux",
+        "open_file_mac",
+        "open_file_platform_interface",
+        "open_file_web",
+        "open_file_windows"
+      ]
+    },
+    {
+      "name": "syncfusion_flutter_pdf",
+      "version": "33.1.47",
+      "dependencies": [
+        "convert",
+        "crypto",
+        "flutter",
+        "http",
+        "intl",
+        "syncfusion_flutter_core",
+        "xml"
+      ]
+    },
+    {
+      "name": "intl",
+      "version": "0.20.2",
+      "dependencies": [
+        "clock",
+        "meta",
+        "path"
       ]
     },
     {
@@ -86,9 +139,10 @@
     },
     {
       "name": "file_picker",
-      "version": "8.3.7",
+      "version": "11.0.2",
       "dependencies": [
         "cross_file",
+        "dbus",
         "ffi",
         "flutter",
         "flutter_plugin_android_lifecycle",
@@ -108,10 +162,11 @@
     },
     {
       "name": "fl_chart",
-      "version": "0.66.2",
+      "version": "1.2.0",
       "dependencies": [
         "equatable",
-        "flutter"
+        "flutter",
+        "vector_math"
       ]
     },
     {
@@ -241,6 +296,115 @@
       ]
     },
     {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
+      ]
+    },
+    {
+      "name": "async",
+      "version": "2.13.0",
+      "dependencies": [
+        "collection",
+        "meta"
+      ]
+    },
+    {
+      "name": "open_file_platform_interface",
+      "version": "1.0.3",
+      "dependencies": [
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "open_file_linux",
+      "version": "0.0.5",
+      "dependencies": [
+        "ffi",
+        "flutter",
+        "open_file_platform_interface"
+      ]
+    },
+    {
+      "name": "open_file_windows",
+      "version": "0.0.3",
+      "dependencies": [
+        "ffi",
+        "flutter",
+        "open_file_platform_interface"
+      ]
+    },
+    {
+      "name": "open_file_mac",
+      "version": "1.0.4",
+      "dependencies": [
+        "flutter",
+        "open_file_platform_interface"
+      ]
+    },
+    {
+      "name": "open_file_ios",
+      "version": "1.0.4",
+      "dependencies": [
+        "flutter",
+        "open_file_platform_interface"
+      ]
+    },
+    {
+      "name": "open_file_web",
+      "version": "0.0.4",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "open_file_platform_interface",
+        "web"
+      ]
+    },
+    {
+      "name": "open_file_android",
+      "version": "1.0.6",
+      "dependencies": [
+        "flutter",
+        "open_file_platform_interface"
+      ]
+    },
+    {
+      "name": "xml",
+      "version": "6.6.1",
+      "dependencies": [
+        "collection",
+        "meta",
+        "petitparser"
+      ]
+    },
+    {
+      "name": "syncfusion_flutter_core",
+      "version": "33.1.47",
+      "dependencies": [
+        "flutter",
+        "vector_math"
+      ]
+    },
+    {
+      "name": "crypto",
+      "version": "3.0.7",
+      "dependencies": [
+        "typed_data"
+      ]
+    },
+    {
+      "name": "convert",
+      "version": "3.1.2",
+      "dependencies": [
+        "typed_data"
+      ]
+    },
+    {
       "name": "path_provider_windows",
       "version": "2.3.0",
       "dependencies": [
@@ -353,8 +517,41 @@
       ]
     },
     {
+      "name": "win32",
+      "version": "5.15.0",
+      "dependencies": [
+        "ffi"
+      ]
+    },
+    {
       "name": "web",
       "version": "1.1.1",
+      "dependencies": []
+    },
+    {
+      "name": "plugin_platform_interface",
+      "version": "2.1.8",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "flutter_plugin_android_lifecycle",
+      "version": "2.0.33",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "ffi",
+      "version": "2.2.0",
       "dependencies": []
     },
     {
@@ -366,69 +563,11 @@
       ]
     },
     {
-      "name": "win32",
-      "version": "5.15.0",
-      "dependencies": [
-        "ffi"
-      ]
-    },
-    {
-      "name": "ffi",
-      "version": "2.2.0",
-      "dependencies": []
-    },
-    {
-      "name": "plugin_platform_interface",
-      "version": "2.1.8",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "flutter_plugin_android_lifecycle",
-      "version": "2.0.33",
-      "dependencies": [
-        "flutter"
-      ]
-    },
-    {
-      "name": "flutter_web_plugins",
-      "version": "0.0.0",
-      "dependencies": [
-        "flutter"
-      ]
-    },
-    {
       "name": "equatable",
       "version": "2.0.8",
       "dependencies": [
         "collection",
         "meta"
-      ]
-    },
-    {
-      "name": "http_parser",
-      "version": "4.1.2",
-      "dependencies": [
-        "collection",
-        "source_span",
-        "string_scanner",
-        "typed_data"
-      ]
-    },
-    {
-      "name": "async",
-      "version": "2.13.0",
-      "dependencies": [
-        "collection",
-        "meta"
-      ]
-    },
-    {
-      "name": "crypto",
-      "version": "3.0.7",
-      "dependencies": [
-        "typed_data"
       ]
     },
     {
@@ -498,6 +637,21 @@
       ]
     },
     {
+      "name": "typed_data",
+      "version": "1.4.0",
+      "dependencies": [
+        "collection"
+      ]
+    },
+    {
+      "name": "petitparser",
+      "version": "7.0.2",
+      "dependencies": [
+        "collection",
+        "meta"
+      ]
+    },
+    {
       "name": "platform",
       "version": "3.1.6",
       "dependencies": []
@@ -516,15 +670,33 @@
       "dependencies": []
     },
     {
-      "name": "typed_data",
-      "version": "1.4.0",
+      "name": "vm_service",
+      "version": "15.0.2",
+      "dependencies": []
+    },
+    {
+      "name": "dbus",
+      "version": "0.7.12",
       "dependencies": [
-        "collection"
+        "args",
+        "ffi",
+        "meta",
+        "xml"
       ]
     },
     {
-      "name": "vm_service",
-      "version": "15.0.2",
+      "name": "dio_web_adapter",
+      "version": "2.1.2",
+      "dependencies": [
+        "dio",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "mime",
+      "version": "2.0.0",
       "dependencies": []
     }
   ],

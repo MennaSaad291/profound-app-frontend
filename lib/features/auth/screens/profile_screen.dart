@@ -151,7 +151,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                 // EXCEL UPLOAD LOGIC
                 ElevatedButton.icon(
                   onPressed: () async {
-                    FilePickerResult? r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
+                    FilePickerResult? r = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
                     if (r != null) setSheetState(() => excelFile = r.files.first);
                   },
                   icon: const Icon(Icons.upload_file),

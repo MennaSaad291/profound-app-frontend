@@ -32,7 +32,7 @@ class ProfoundApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpForm(),
         '/profile': (context) => const MainLayout(child: ProfessorProfileScreen()),
-        '/courses': (context) => const MainLayout(child: CoursesModuleScreen()),
+        '/courses': (context) => const MainLayout(child: CoursesListScreen()),
         '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
         '/grading': (context) {
@@ -48,7 +48,7 @@ class ProfoundApp extends StatelessWidget {
             assignmentId: assignmentId,
           );
         },
-        '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
+        // '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
         '/settings': (context) {
           // Extract userId from route arguments passed by the sidebar
