@@ -35,7 +35,19 @@ class ProfoundApp extends StatelessWidget {
         '/courses': (context) => const MainLayout(child: CoursesModuleScreen()),
         '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
-        '/grading': (context) => AIGradingModule(onBack: () => Navigator.pop(context)),
+        '/grading': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          int assignmentId = 0;
+
+          if (args is Map) {
+            assignmentId = (args['assignment_id'] ?? 0) as int;
+          }
+
+          return AIGradingModule(
+            onBack: () => Navigator.pop(context),
+            assignmentId: assignmentId,
+          );
+        },
         '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
         '/settings': (context) {
@@ -50,6 +62,7 @@ class ProfoundApp extends StatelessWidget {
         '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
       },
       home: const LoginScreen(),
+
     );
   }
 }
