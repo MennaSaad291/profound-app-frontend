@@ -81,7 +81,7 @@
     },
     {
       "name": "syncfusion_flutter_pdf",
-      "version": "33.1.47",
+      "version": "33.1.49",
       "dependencies": [
         "convert",
         "crypto",
@@ -181,7 +181,7 @@
     },
     {
       "name": "cupertino_icons",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "dependencies": []
     },
     {
@@ -220,7 +220,7 @@
     },
     {
       "name": "meta",
-      "version": "1.17.0",
+      "version": "1.16.0",
       "dependencies": []
     },
     {
@@ -271,7 +271,7 @@
     },
     {
       "name": "matcher",
-      "version": "0.12.18",
+      "version": "0.12.17",
       "dependencies": [
         "async",
         "meta",
@@ -282,7 +282,7 @@
     },
     {
       "name": "test_api",
-      "version": "0.7.9",
+      "version": "0.7.6",
       "dependencies": [
         "async",
         "boolean_selector",
@@ -296,6 +296,21 @@
       ]
     },
     {
+      "name": "dio_web_adapter",
+      "version": "2.1.2",
+      "dependencies": [
+        "dio",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "mime",
+      "version": "2.0.0",
+      "dependencies": []
+    },
+    {
       "name": "http_parser",
       "version": "4.1.2",
       "dependencies": [
@@ -307,7 +322,7 @@
     },
     {
       "name": "async",
-      "version": "2.13.0",
+      "version": "2.13.1",
       "dependencies": [
         "collection",
         "meta"
@@ -374,20 +389,18 @@
       ]
     },
     {
-      "name": "xml",
-      "version": "6.6.1",
-      "dependencies": [
-        "collection",
-        "meta",
-        "petitparser"
-      ]
-    },
-    {
       "name": "syncfusion_flutter_core",
-      "version": "33.1.47",
+      "version": "33.1.49",
       "dependencies": [
         "flutter",
         "vector_math"
+      ]
+    },
+    {
+      "name": "convert",
+      "version": "3.1.2",
+      "dependencies": [
+        "typed_data"
       ]
     },
     {
@@ -398,10 +411,12 @@
       ]
     },
     {
-      "name": "convert",
-      "version": "3.1.2",
+      "name": "xml",
+      "version": "6.6.1",
       "dependencies": [
-        "typed_data"
+        "collection",
+        "meta",
+        "petitparser"
       ]
     },
     {
@@ -444,7 +459,7 @@
     },
     {
       "name": "path_provider_android",
-      "version": "2.2.22",
+      "version": "2.2.23",
       "dependencies": [
         "flutter",
         "path_provider_platform_interface"
@@ -502,7 +517,7 @@
     },
     {
       "name": "url_launcher_android",
-      "version": "6.3.28",
+      "version": "6.3.29",
       "dependencies": [
         "flutter",
         "url_launcher_platform_interface"
@@ -510,7 +525,7 @@
     },
     {
       "name": "markdown",
-      "version": "7.3.0",
+      "version": "7.3.1",
       "dependencies": [
         "args",
         "meta"
@@ -544,7 +559,7 @@
     },
     {
       "name": "flutter_plugin_android_lifecycle",
-      "version": "2.0.33",
+      "version": "2.0.34",
       "dependencies": [
         "flutter"
       ]
@@ -553,6 +568,16 @@
       "name": "ffi",
       "version": "2.2.0",
       "dependencies": []
+    },
+    {
+      "name": "dbus",
+      "version": "0.7.12",
+      "dependencies": [
+        "args",
+        "ffi",
+        "meta",
+        "xml"
+      ]
     },
     {
       "name": "cross_file",
@@ -577,14 +602,14 @@
     },
     {
       "name": "material_color_utilities",
-      "version": "0.13.0",
+      "version": "0.11.1",
       "dependencies": [
         "collection"
       ]
     },
     {
       "name": "characters",
-      "version": "1.4.1",
+      "version": "1.4.0",
       "dependencies": []
     },
     {
@@ -672,31 +697,6 @@
     {
       "name": "vm_service",
       "version": "15.0.2",
-      "dependencies": []
-    },
-    {
-      "name": "dbus",
-      "version": "0.7.12",
-      "dependencies": [
-        "args",
-        "ffi",
-        "meta",
-        "xml"
-      ]
-    },
-    {
-      "name": "dio_web_adapter",
-      "version": "2.1.2",
-      "dependencies": [
-        "dio",
-        "http_parser",
-        "meta",
-        "web"
-      ]
-    },
-    {
-      "name": "mime",
-      "version": "2.0.0",
       "dependencies": []
     }
   ],
