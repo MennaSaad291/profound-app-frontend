@@ -2,38 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_saver/file_saver.dart';
 
 const String _base = 'http://127.0.0.1:8000';
 const int _kMaxSlides = 60;
 const int _kMinSlides = 3;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Data models for professor-added content
-// ─────────────────────────────────────────────────────────────────────────────
-
-class ProfTextEntry {
-  final TextEditingController textController;
-  final TextEditingController slideController;
-  ProfTextEntry()
-      : textController = TextEditingController(),
-        slideController = TextEditingController(text: '1');
-  void dispose() {
-    textController.dispose();
-    slideController.dispose();
-  }
-}
-
-class ProfImageEntry {
-  String? filePath;
-  String? fileName;
-  final TextEditingController slideController;
-  ProfImageEntry() : slideController = TextEditingController(text: '1');
-  void dispose() => slideController.dispose();
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Widget
@@ -57,11 +31,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   String _selectedLevel = 'Undergraduate (Introductory)';
   String _selectedTheme = 'Modern Minimalist';
   bool   _includeMedia  = false;
-  int    _confirmedSlideCount = 10; // the count actually sent to the API
-
-  // ── Professor-added content ──────────────────────────────────────
-  final List<ProfTextEntry>  _profTexts  = [];
-  final List<ProfImageEntry> _profImages = [];
 
   // ── State ─────────────────────────────────────────────────────────
   bool _isGenerating = false;
@@ -94,8 +63,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
     _sourcesController.dispose();
     _pageCountController.dispose();
     _pageController.dispose();
-    for (final e in _profTexts)  e.dispose();
-    for (final e in _profImages) e.dispose();
     super.dispose();
   }
 
@@ -106,14 +73,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
       case 'Classic Academic': return const Color(0xFF800000);
       case 'Vibrant Creative': return const Color(0xFFF97316);
       default:                 return const Color(0xFF4F46E5);
-    }
-  }
-  Color get _accent2 {
-    switch (_selectedTheme) {
-      case 'Dark Mode Tech':   return const Color(0xFF06B6D4);
-      case 'Classic Academic': return const Color(0xFFB85C38);
-      case 'Vibrant Creative': return const Color(0xFFEC4899);
-      default:                 return const Color(0xFF7C3AED);
     }
   }
   Color get _slideBg {
@@ -127,35 +86,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   Color get _textColor   => _selectedTheme == 'Dark Mode Tech' ? Colors.white           : const Color(0xFF1F2937);
   Color get _mutedColor  => _selectedTheme == 'Dark Mode Tech' ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
   Color get _detailColor => _selectedTheme == 'Dark Mode Tech' ? const Color(0xFFCBD5E1) : const Color(0xFF374151);
-
-  // ─────────────────────────────────────────────────────────────────
-  // Helpers: professor content
-  // ─────────────────────────────────────────────────────────────────
-
-  void _addProfText()  => setState(() => _profTexts.add(ProfTextEntry()));
-  void _removeProfText(int i) => setState(() => _profTexts.removeAt(i).dispose());
-
-  void _addProfImage() => setState(() => _profImages.add(ProfImageEntry()));
-  void _removeProfImage(int i) => setState(() => _profImages.removeAt(i).dispose());
-
-  Future<void> _pickImage(int i) async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
-    if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        _profImages[i].filePath = result.files.first.path;
-        _profImages[i].fileName = result.files.first.name;
-      });
-    }
-  }
-
-  /// Clamp slide-number input to valid range
-  int _clampSlideNum(String v) {
-    final n = int.tryParse(v) ?? 1;
-    return n.clamp(1, _confirmedSlideCount);
-  }
 
   // ─────────────────────────────────────────────────────────────────
   // API: generate
@@ -173,7 +103,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
     }
 
     setState(() {
-      _confirmedSlideCount = raw;
       _isGenerating = true;
       _presentationData = null;
       _currentSlide = 0;
@@ -184,32 +113,10 @@ class _AILectureScreenState extends State<AILectureScreen> {
       final instructions = _instructionsController.text.trim();
       final sources      = _sourcesController.text.trim();
 
-      // Build professor-text addendum
-      final textAddenda = StringBuffer();
-      for (int i = 0; i < _profTexts.length; i++) {
-        final text  = _profTexts[i].textController.text.trim();
-        final slide = _clampSlideNum(_profTexts[i].slideController.text);
-        if (text.isNotEmpty) {
-          textAddenda.write(' PROFESSOR NOTE FOR SLIDE $slide: "$text".');
-        }
-      }
-
-      // Build professor-image addendum
-      final imageAddenda = StringBuffer();
-      for (int i = 0; i < _profImages.length; i++) {
-        final name  = _profImages[i].fileName ?? '';
-        final slide = _clampSlideNum(_profImages[i].slideController.text);
-        if (name.isNotEmpty) {
-          imageAddenda.write(' IMAGE "$name" should be inserted on slide $slide.');
-        }
-      }
-
       final combined = [
         if (instructions.isNotEmpty) instructions,
         if (sources.isNotEmpty) 'Professor sources: $sources',
-        if (textAddenda.isNotEmpty) textAddenda.toString().trim(),
-        if (imageAddenda.isNotEmpty) imageAddenda.toString().trim(),
-        if (instructions.isEmpty && sources.isEmpty && textAddenda.isEmpty && imageAddenda.isEmpty)
+        if (instructions.isEmpty && sources.isEmpty)
           'Produce a thorough, student-friendly academic lecture.',
       ].join('. ');
 
@@ -229,31 +136,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
         if (decoded is Map && decoded['slides'] is List && (decoded['slides'] as List).isNotEmpty) {
-          final slides = (decoded['slides'] as List);
-          // Inject professor texts into slides
-          for (final e in _profTexts) {
-            final text  = e.textController.text.trim();
-            final slide = _clampSlideNum(e.slideController.text) - 1;
-            if (text.isNotEmpty && slide < slides.length) {
-              final s = Map<String, dynamic>.from(slides[slide] as Map);
-              final pts = List.from(s['points'] as List? ?? []);
-              pts.add({'headline': 'Professor Note', 'detail': text});
-              s['points'] = pts;
-              slides[slide] = s;
-            }
-          }
-          // Inject professor images metadata into slides
-          for (final e in _profImages) {
-            if (e.filePath == null) continue;
-            final slide = _clampSlideNum(e.slideController.text) - 1;
-            if (slide < slides.length) {
-              final s = Map<String, dynamic>.from(slides[slide] as Map);
-              s['professor_image'] = e.filePath;
-              s['professor_image_name'] = e.fileName;
-              slides[slide] = s;
-            }
-          }
-          setState(() => _presentationData = {'slides': slides});
+          setState(() => _presentationData = {'slides': decoded['slides']});
         } else {
           _snack('Server returned no slides. Please try again.', isError: true);
           setState(() => _showSettings = true);
@@ -322,16 +205,17 @@ class _AILectureScreenState extends State<AILectureScreen> {
       ).timeout(const Duration(seconds: 90));
 
       if (res.statusCode == 200) {
-        Directory? dir;
-        if (Platform.isWindows) {
-          dir = Directory('${Platform.environment['USERPROFILE']}\\Downloads');
-        } else {
-          dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
-        }
         final clean = _topicController.text.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-        final path  = '${dir.path}${Platform.pathSeparator}Lecture_$clean.pptx';
-        await File(path).writeAsBytes(res.bodyBytes);
-        _snack('Saved: Lecture_$clean.pptx');
+        final fileName = 'Lecture_$clean';
+
+        await FileSaver.instance.saveFile(
+          name: fileName,
+          bytes: res.bodyBytes,
+          fileExtension: 'pptx',
+          mimeType: MimeType.microsoftPresentation,
+        );
+
+        _snack('Saved: $fileName.pptx');
       } else {
         _snack('Export error: ${_parseError(res.body)}', isError: true);
       }
@@ -477,8 +361,12 @@ class _AILectureScreenState extends State<AILectureScreen> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             _lbl('Theme'),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               value: _selectedTheme, decoration: _dec(''),
-              items: _themes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
+              items: _themes.map((t) => DropdownMenuItem(
+                value: t, 
+                child: Text(t, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)
+              )).toList(),
               onChanged: (v) => setState(() => _selectedTheme = v!),
             ),
           ])),
@@ -498,36 +386,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
             value: _includeMedia, activeColor: _accent,
             onChanged: (v) => setState(() => _includeMedia = v),
           ),
-        ),
-        const SizedBox(height: 20),
-
-        // ══════════════════════════════════════════════════════════
-        // PROFESSOR TEXT ADDITIONS
-        // ══════════════════════════════════════════════════════════
-        _sectionHeader(Icons.edit_note_rounded, 'Add Text to Slides'),
-        const SizedBox(height: 8),
-
-        ..._profTexts.asMap().entries.map((e) => _buildProfTextRow(e.key)),
-
-        TextButton.icon(
-          onPressed: _addProfText,
-          icon: Icon(Icons.add_circle_outline, color: _accent, size: 18),
-          label: Text('Add text entry', style: TextStyle(color: _accent, fontSize: 13)),
-        ),
-        const SizedBox(height: 18),
-
-        // ══════════════════════════════════════════════════════════
-        // PROFESSOR IMAGE ADDITIONS
-        // ══════════════════════════════════════════════════════════
-        _sectionHeader(Icons.add_photo_alternate_rounded, 'Add Images to Slides'),
-        const SizedBox(height: 8),
-
-        ..._profImages.asMap().entries.map((e) => _buildProfImageRow(e.key)),
-
-        TextButton.icon(
-          onPressed: _addProfImage,
-          icon: Icon(Icons.add_circle_outline, color: _accent, size: 18),
-          label: Text('Add image entry', style: TextStyle(color: _accent, fontSize: 13)),
         ),
         const SizedBox(height: 24),
 
@@ -569,156 +427,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
       ]),
     ),
   );
-
-  Widget _sectionHeader(IconData icon, String label) => Row(children: [
-    Icon(icon, color: _accent, size: 18),
-    const SizedBox(width: 8),
-    Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: _accent)),
-    const Spacer(),
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: _accent.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-      child: Text('Slide-specific', style: TextStyle(fontSize: 10, color: _accent)),
-    ),
-  ]);
-
-  Widget _buildProfTextRow(int i) {
-    final entry = _profTexts[i];
-    // compute max slide count from current input
-    final currentCount = int.tryParse(_pageCountController.text) ?? 10;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withOpacity(0.2)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: entry.textController,
-              maxLines: 2,
-              style: const TextStyle(fontSize: 13),
-              decoration: _dec('Text to add to slide...'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 1,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Slide #', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _accent)),
-              const SizedBox(height: 4),
-              TextField(
-                controller: entry.slideController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(fontSize: 13),
-                decoration: _dec('1', hint2: '1–$currentCount'),
-                onChanged: (v) {
-                  final n = int.tryParse(v) ?? 1;
-                  final clamped = n.clamp(1, currentCount);
-                  if (n != clamped) {
-                    entry.slideController.text = clamped.toString();
-                    entry.slideController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: entry.slideController.text.length),
-                    );
-                  }
-                },
-              ),
-            ]),
-          ),
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-            onPressed: () => _removeProfText(i),
-            tooltip: 'Remove',
-          ),
-        ]),
-      ]),
-    );
-  }
-
-  Widget _buildProfImageRow(int i) {
-    final entry = _profImages[i];
-    final currentCount = int.tryParse(_pageCountController.text) ?? 10;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F0),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
-      ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // Image picker button
-        Expanded(
-          flex: 3,
-          child: InkWell(
-            onTap: () => _pickImage(i),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: entry.filePath != null ? Colors.green.shade400 : Colors.grey.shade300),
-              ),
-              child: Row(children: [
-                Icon(
-                  entry.filePath != null ? Icons.check_circle : Icons.image_outlined,
-                  size: 18,
-                  color: entry.filePath != null ? Colors.green.shade600 : Colors.grey.shade500,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    entry.fileName ?? 'Tap to select image',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: entry.filePath != null ? Colors.green.shade700 : Colors.grey.shade500,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    maxLines: 1,
-                  ),
-                ),
-              ]),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Slide number picker
-        SizedBox(
-          width: 72,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Slide #', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _accent)),
-            const SizedBox(height: 4),
-            TextField(
-              controller: entry.slideController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 13),
-              decoration: _dec('1'),
-              onChanged: (v) {
-                final n = int.tryParse(v) ?? 1;
-                final clamped = n.clamp(1, currentCount);
-                if (n != clamped) {
-                  entry.slideController.text = clamped.toString();
-                  entry.slideController.selection = TextSelection.fromPosition(
-                    TextPosition(offset: entry.slideController.text.length),
-                  );
-                }
-              },
-            ),
-          ]),
-        ),
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-          onPressed: () => _removeProfImage(i),
-          tooltip: 'Remove',
-        ),
-      ]),
-    );
-  }
 
   // ─────────────────────────────────────────────────────────────────
   // Main area
@@ -819,8 +527,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
     final points   = (slide['points']  as List?) ?? [];
     final example  = _clean(slide['example']);
     final imgSug   = slide['image_suggestion'];
-    final profImg  = slide['professor_image'] as String?;
-    final profImgN = slide['professor_image_name'] as String?;
     final isRegen  = _regeneratingSlides.contains(index);
     final isRef    = _isRefSlide(slide);
 
@@ -862,9 +568,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
             // Accent underline
             Container(width: 60, height: 3, margin: const EdgeInsets.only(top: 4, bottom: 16),
                 decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2))),
-
-            // ── Professor image (if any) ────────────────────────────
-            if (profImg != null) _buildProfImageDisplay(profImg, profImgN),
 
             // ── Points ─────────────────────────────────────────────
             if (!isRef)
@@ -960,45 +663,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
           ]),
         ),
       ]),
-    );
-  }
-
-  /// Displays a professor-uploaded image inline in the slide
-  Widget _buildProfImageDisplay(String filePath, String? fileName) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withOpacity(0.3)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            color: _accent.withOpacity(0.1),
-            child: Row(children: [
-              Icon(Icons.image_rounded, size: 14, color: _accent),
-              const SizedBox(width: 6),
-              Expanded(child: Text(
-                fileName ?? 'Professor Image',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _accent),
-                overflow: TextOverflow.ellipsis,
-              )),
-            ]),
-          ),
-          Image.file(
-            File(filePath),
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Container(
-              height: 80,
-              color: Colors.grey.shade100,
-              child: Center(child: Text('Could not load image: $fileName',
-                  style: TextStyle(fontSize: 12, color: _mutedColor))),
-            ),
-          ),
-        ]),
-      ),
     );
   }
 
