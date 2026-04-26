@@ -487,71 +487,7 @@ class _AIGradingModuleState extends State<AIGradingModule> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF5F0FF), Colors.white, Color(0xFFFFF4E5)],
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF9333EA),
-                    Color(0xFF7E22CE),
-                    Color(0xFFD97706)
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: SafeArea(
-                bottom: false,
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: widget.onBack,
-                      icon: const Icon(Icons.chevron_left,
-                          color: Colors.white, size: 24),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('AI Grading Module',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold)),
-                          Text('Software Design Essay',
-                              style: TextStyle(
-                                  color: Color(0xFFE9D5FF), fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(shape: BoxShape.circle),
-                      child: ClipOval(
-                        child: Image.asset('assets/images/logo.jpeg',
-                            fit: BoxFit.cover, width: 36, height: 36),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
+      body: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
@@ -823,10 +759,6 @@ class _AIGradingModuleState extends State<AIGradingModule> {
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

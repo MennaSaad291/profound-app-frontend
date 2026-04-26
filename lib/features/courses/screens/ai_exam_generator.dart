@@ -224,12 +224,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: Text("AI Exam Generator",
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: isLoading
           ? Center(
               child: Column(

@@ -112,7 +112,6 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen> {
         ),
         child: CustomScrollView(
           slivers: [
-            _buildSliverAppBar(),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -138,42 +137,6 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen> {
     );
   }
 
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 80,
-      leading: IconButton(
-        icon: const Icon(Icons.chevron_left, color: Colors.white, size: 28),
-        onPressed: () => Navigator.pop(context),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () {},
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF6B21A8), Color(0xFF9333EA), Color(0xFFD97706)],
-            ),
-          ),
-        ),
-        title: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Research Organizer',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('Manage your academic projects',
-                style: GoogleFonts.inter(color: Colors.white70, fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildQuickStats() {
     return Container(

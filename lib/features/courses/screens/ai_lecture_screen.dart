@@ -236,36 +236,43 @@ class _AILectureScreenState extends State<AILectureScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        backgroundColor: _accent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text('AI Lecture Builder', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        actions: [
-          if (_presentationData != null) ...[
-            IconButton(
-              icon: Icon(_showSettings ? Icons.settings : Icons.settings_outlined),
-              tooltip: 'Settings',
-              onPressed: () => setState(() => _showSettings = !_showSettings),
-            ),
-            IconButton(
-              icon: const Icon(Icons.speaker_notes_outlined),
-              tooltip: 'Speaker Notes',
-              onPressed: () => setState(() => _showNotes = !_showNotes),
-            ),
-            IconButton(
-              icon: _isExporting
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.download_rounded),
-              tooltip: 'Export .PPTX',
-              onPressed: _isExporting ? null : _exportToPowerPoint,
-            ),
-          ],
-        ],
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
+          // ── Page title + action bar (replaces removed AppBar actions) ──
+          Container(
+            color: _accent,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Text('AI Lecture Builder',
+                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+                if (_presentationData != null) ...[
+                  IconButton(
+                    icon: Icon(_showSettings ? Icons.settings : Icons.settings_outlined, color: Colors.white),
+                    tooltip: 'Settings',
+                    onPressed: () => setState(() => _showSettings = !_showSettings),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.speaker_notes_outlined, color: Colors.white),
+                    tooltip: 'Speaker Notes',
+                    onPressed: () => setState(() => _showNotes = !_showNotes),
+                  ),
+                  IconButton(
+                    icon: _isExporting
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Icon(Icons.download_rounded, color: Colors.white),
+                    tooltip: 'Export .PPTX',
+                    onPressed: _isExporting ? null : _exportToPowerPoint,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // Left panel
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
@@ -279,9 +286,13 @@ class _AILectureScreenState extends State<AILectureScreen> {
           // Thumbnail panel
           if (_presentationData != null) _buildThumbnailPanel(),
         ],
+            ), 
+          ), 
+        ],
       ),
     );
   }
+
 
   // ─────────────────────────────────────────────────────────────────
   // Settings panel

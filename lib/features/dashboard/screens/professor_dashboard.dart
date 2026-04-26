@@ -94,7 +94,7 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     subtitle: "Create assessments instantly",
                     icon: Icons.edit_note,
                     gradient: const [Color(0xFF4F46E5), Color(0xFF4338CA)],
-                    onTap: () {}, // You can connect this one later!
+                    onTap: () => Navigator.pushNamed(context, '/exam_generator'), 
                   ),
                   const SizedBox(height: 32),
                 ],
