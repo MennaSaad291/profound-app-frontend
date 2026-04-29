@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 
+import '../../assignments/assignments_screen.dart';
+
 const String _base = 'http://127.0.0.1:8000';
 
 class CoursesListScreen extends StatefulWidget {
@@ -435,7 +437,31 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: filteredCourses.length,
-                    itemBuilder: (ctx, i) => _buildCourseCard(filteredCourses[i]),
+                    itemBuilder: (ctx, i) {
+                      final course = filteredCourses[i];
+                      return InkWell(
+                          onTap: () {
+                            final id = course['id'];
+
+                            if (id == null || id == 0) {
+                              print("Invalid course ID: $id");
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AssignmentsScreen(
+                                  courseId: id,
+                                  courseName: course['name'],
+                                )
+                              ),
+                            );
+                          },
+                        // This keeps your existing UI exactly as is
+                        child: _buildCourseCard(course),
+                      );
+                    },
                   ),
                 ),
         ),
@@ -782,6 +808,7 @@ class _StudentsSheetState extends State<_StudentsSheet> {
                     ]),
                   );
                 },
+
               ),
         ),
       ]),

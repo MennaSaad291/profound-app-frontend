@@ -75,7 +75,7 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     subtitle: "Automated grading with NLP",
                     icon: Icons.check_circle_outline,
                     gradient: const [Color(0xFF9333EA), Color(0xFF7E22CE)],
-                    onTap: () => Navigator.pushNamed(context, '/grading'),
+                    onTap: () => Navigator.pushNamed(context, '/grading',arguments: {'assignment_id': 1},),
                   ),
                   const SizedBox(height: 12),
                   

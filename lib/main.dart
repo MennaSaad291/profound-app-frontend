@@ -11,6 +11,7 @@ import 'features/grading/ai_grading_module.dart';
 import 'features/analytics/full_analytics_reports_module.dart';
 import 'features/research/screens/research_organizer_screen.dart';
 import 'features/settings/screens/system_settings_screen.dart';
+import 'features/assignments/assignments_screen.dart';
 
 void main() {
   runApp(const ProfoundApp());
@@ -35,19 +36,7 @@ class ProfoundApp extends StatelessWidget {
         '/courses': (context) => const MainLayout(child: CoursesListScreen()),
         '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
-        '/grading': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          int assignmentId = 0;
-
-          if (args is Map) {
-            assignmentId = (args['assignment_id'] ?? 0) as int;
-          }
-
-          return AIGradingModule(
-            onBack: () => Navigator.pop(context),
-            assignmentId: assignmentId,
-          );
-        },
+        '/grading': (context) => const AiGradingModule(),
         // '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
         '/settings': (context) {
@@ -59,7 +48,17 @@ class ProfoundApp extends StatelessWidget {
           }
           return SystemSettingsScreen(userId: userId);
         },
-        '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
+       // '/generate_lecture': (context) => MainLayout(child: AILectureScreen()),
+        '/assignments': (context) {
+          // 1. Extract arguments as a Map
+          final args = ModalRoute.of(context)?.settings.arguments as Map?;
+
+          // 2. Pass both courseId and courseName to the screen
+          return AssignmentsScreen(
+            courseId: args?['course_id'] ?? 0,
+            courseName: args?['course_name'] ?? 'Course', // Fallback to 'Course' if name is missing
+          );
+        },
       },
       home: const LoginScreen(),
 

@@ -33,137 +33,90 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Access nested report data from your backend JSON
     final report = widget.submission['grade_report'] ?? {};
+    final String lang = report['detected_language'] ?? "Unknown";
     final plagiarism = widget.submission['plagiarism_score'] ?? 0;
-    final scores = report['criteria_scores'] ?? {};
 
-    final List<Map<String, dynamic>> dynamicRubric = [
-      {
-        'name': 'Content & Understanding',
-        'aiScore': scores['content'] ?? 0,
-        'maxScore': 25
-      },
-      {
-        'name': 'Structure & Organization',
-        'aiScore': scores['structure'] ?? 0,
-        'maxScore': 25
-      },
-      {
-        'name': 'Technical Accuracy',
-        'aiScore': scores['technical'] ?? 0,
-        'maxScore': 25
-      },
-      {
-        'name': 'Writing Quality',
-        'aiScore': scores['writing'] ?? 0,
-        'maxScore': 25
-      },
-    ];
-
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF7E22CE), Color(0xFF9333EA)]),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Row(
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Review Submission",
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(widget.submission['student_name'] ?? "",
-                            style: TextStyle(color: Colors.purple.shade100, fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: Colors.white)
-                  ),
-                ],
-              ),
-            ),
+                  _buildSectionTitle(Icons.description, "Student Submission"),
+                  // This displays the essay_content from your SubmissionDB
+                  _buildContentBox(widget.submission['essay_content'] ?? "No content found in database."),
 
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle(Icons.edit, "Student Submission"),
-                    _buildContentBox(widget.submission['essay_content'] ?? "No content available."),
+                  const SizedBox(height: 24),
 
-                    const SizedBox(height: 20),
-                    _buildSectionTitle(Icons.smart_toy, "AI Grade Breakdown", color: Colors.purple),
-                    _buildRubricList(dynamicRubric),
+                  _buildSectionTitle(Icons.feedback, "AI Feedback ($lang)", color: Colors.purple),
+                  _buildFeedbackBox(report['summary'] ?? "Analysis complete."),
 
-                    const SizedBox(height: 20),
-                    _buildSectionTitle(Icons.feedback, "AI-Generated Feedback", color: Colors.purple),
-                    _buildFeedbackBox(report['summary'] ?? "Analysis complete."),
-
-                    const SizedBox(height: 20),
-                    if (plagiarism > 0) _buildPlagiarismAlert(plagiarism),
-
-                    const SizedBox(height: 20),
-                    _buildSectionTitle(Icons.edit_note, "Manual Grade Override"),
-                    _buildGradeOverrideInput(),
+                  if (plagiarism > 0) ...[
+                    const SizedBox(height: 24),
+                    _buildPlagiarismAlert(plagiarism),
                   ],
-                ),
-              ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancel"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF9333EA),
-                          foregroundColor: Colors.white
-                      ),
-                      onPressed: () {
-                        double? val = double.tryParse(_gradeController.text);
-                        if (val != null) widget.onFinalize(val);
-                      },
-                      child: const Text("Finalize Grade"),
-                    ),
-                  ),
+                  const SizedBox(height: 24),
+
+                  _buildSectionTitle(Icons.edit_note, "Final Adjustment", color: Colors.orange),
+                  _buildGradeOverrideInput(),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          _buildFooter(context),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(IconData icon, String title, {Color color = Colors.grey}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [Color(0xFF9333EA), Color(0xFF7E22CE)]),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Grading Review",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(widget.submission['student_name'] ?? "Student",
+                    style: TextStyle(color: Colors.purple.shade100, fontSize: 14)),
+              ],
+            ),
+          ),
+          IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white)
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(IconData icon, String title, {Color color = Colors.blueGrey}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
           const SizedBox(width: 8),
           Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
@@ -174,98 +127,100 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
   Widget _buildContentBox(String text) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(8)
-      ),
-      child: Text(text, style: TextStyle(color: Colors.grey.shade800)),
-    );
-  }
-
-  Widget _buildRubricList(List<Map<String, dynamic>> criteria) {
-    return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: criteria.map((c) {
-          double percent = (c['aiScore'] / c['maxScore']).clamp(0.0, 1.0);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(c['name']),
-                    Text("${c['aiScore']}/${c['maxScore']}",
-                        style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.bold))
-                  ],
-                ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                    value: percent,
-                    backgroundColor: Colors.purple.shade100,
-                    color: Colors.purple
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
+      child: Text(text, style: const TextStyle(height: 1.5, color: Colors.black87)),
     );
   }
 
   Widget _buildFeedbackBox(String feedback) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          border: Border.all(color: Colors.blue.shade100),
-          borderRadius: BorderRadius.circular(12)
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade100),
       ),
-      child: Text(feedback),
-    );
-  }
-
-  Widget _buildPlagiarismAlert(int score) {
-    Color color = score < 10 ? Colors.amber : Colors.red;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          border: Border.all(color: color.withOpacity(0.3)),
-          borderRadius: BorderRadius.circular(12)
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning, color: color),
-          const SizedBox(width: 12),
-          Expanded(child: Text("$score% Plagiarism detected. Manual review suggested.")),
-        ],
-      ),
+      child: Text(feedback, style: const TextStyle(height: 1.5, color: Colors.blueAccent)),
     );
   }
 
   Widget _buildGradeOverrideInput() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade100),
+      ),
       child: Row(
         children: [
-          const Text("Final Grade: "),
+          const Expanded(
+            child: Text("Final Score Adjustment",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+          ),
           SizedBox(
-            width: 80,
+            width: 100,
             child: TextField(
               controller: _gradeController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(suffixText: "%", isDense: true),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              decoration: const InputDecoration(
+                suffixText: "%",
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+              child: const Text("Cancel")
+          )),
+          const SizedBox(width: 16),
+          Expanded(child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9333EA),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              elevation: 0,
+            ),
+            onPressed: () {
+              double? val = double.tryParse(_gradeController.text);
+              if (val != null) widget.onFinalize(val);
+            },
+            child: const Text("Finalize Grade", style: TextStyle(fontWeight: FontWeight.bold)),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlagiarismAlert(int score) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
+      child: Row(children: [const Icon(Icons.warning, color: Colors.red), const SizedBox(width: 12), Text("$score% Plagiarism detected.")]),
     );
   }
 }
