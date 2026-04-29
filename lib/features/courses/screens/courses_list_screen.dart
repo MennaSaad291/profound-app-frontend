@@ -381,24 +381,25 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: Text("My Courses",
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          // ✅ Single button — icon + label, no FAB
-          TextButton.icon(
-            onPressed: () => _showAddEditCourseSheet(),
-            icon: const Icon(Icons.add_circle, color: Color(0xFF4F46E5), size: 22),
-            label: const Text("Add Course",
-              style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      // ✅ No floatingActionButton
       body: Column(children: [
+        // ── Page title bar ──────────────────────────────────────
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Text("My Courses",
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _showAddEditCourseSheet(),
+                icon: const Icon(Icons.add_circle, color: Color(0xFF4F46E5), size: 22),
+                label: const Text("Add Course",
+                  style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: TextField(

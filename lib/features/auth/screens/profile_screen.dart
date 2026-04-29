@@ -72,7 +72,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
           children: [
             Text("Add Research Interest", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
             TextField(controller: interestCon, decoration: const InputDecoration(labelText: "Interest Name")),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _submitData('/interests', {
@@ -81,7 +81,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
               }),
               child: const Text("Save Interest", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -103,7 +103,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
             Text("Add Graduation Project", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
             TextField(controller: titleCon, decoration: const InputDecoration(labelText: "Project Title")),
             TextField(controller: teamCon, decoration: const InputDecoration(labelText: "Team")),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _submitData('/projects', {
@@ -115,7 +115,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
               }),
               child: const Text("Save Project", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -147,7 +147,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                 TextField(controller: semCon, decoration: const InputDecoration(labelText: "Semester (e.g. Fall 2025)")),
                 TextField(controller: schedCon, decoration: const InputDecoration(labelText: "Schedule (e.g. Mon, Wed 10:00 AM)")),
                 TextField(controller: roomCon, decoration: const InputDecoration(labelText: "Room (e.g. Building A, 201)")),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 // EXCEL UPLOAD LOGIC
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -157,7 +157,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                   icon: const Icon(Icons.upload_file),
                   label: Text(excelFile == null ? "Upload Student Excel" : "File: ${excelFile!.name}"),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
                   onPressed: () async {
@@ -183,7 +183,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                   },
                   child: const Text("Save Course", style: TextStyle(color: Colors.white)),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 14),
               ],
             ),
           ),
@@ -209,7 +209,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
             TextField(controller: tCon, decoration: const InputDecoration(labelText: "Title")),
             TextField(controller: jCon, decoration: const InputDecoration(labelText: "Journal")),
             TextField(controller: yCon, decoration: const InputDecoration(labelText: "Year")),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _submitData('/publications', {
@@ -221,7 +221,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
               }),
               child: const Text("Save Publication", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -245,7 +245,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
             TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Full Name")),
             TextField(controller: deptCon, decoration: const InputDecoration(labelText: "Department")),
             TextField(controller: bioCon, maxLines: 3, decoration: const InputDecoration(labelText: "Bio")),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _submitData('/profile/update/${profileData!['id']}', {
@@ -255,7 +255,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
               }),
               child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -276,11 +276,11 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
               child: Column(
                 children: [
                   _buildProfileHeader(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildAboutMe(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildEngagementMetrics(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildCollapsibleSection(
                     icon: Icons.book_outlined,
                     title: "Research & Publications",
@@ -305,9 +305,9 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                     tag: 'projects',
                     onAdd: _showAddProjectSheet,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildResearchInterests(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -378,7 +378,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 3, 
+          childAspectRatio: 2.8, 
           children: [
             _metricTile("Citations", "${metrics['citations'] ?? 0}", const Color(0xFFF0FDF4), const Color(0xFF166534), Icons.chat_bubble_outline_rounded), // FIXED: Bubble icon
             _metricTile("Students", "${metrics['students'] ?? 0}", const Color(0xFFEFF6FF), const Color(0xFF1E40AF), Icons.people_alt_rounded),
@@ -392,7 +392,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
 
   Widget _metricTile(String label, String value, Color bg, Color text, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), 
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), 
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

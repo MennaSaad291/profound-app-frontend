@@ -127,7 +127,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             children: [
               Text('Enter your password to save changes',
                   style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 controller: passwordController,
                 obscureText: !showPw,
@@ -297,16 +297,15 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         ),
         child: CustomScrollView(
           slivers: [
-            _buildSliverAppBar(),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
                     _buildMenuGrid(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     _buildContent(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -317,59 +316,29 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 80,
-      leading: IconButton(
-        icon: const Icon(Icons.chevron_left, color: Colors.white, size: 28),
-        onPressed: () => Navigator.pop(context),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF6B21A8), Color(0xFF9333EA), Color(0xFFD97706)],
-            ),
-          ),
-        ),
-        title: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('System Settings',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('Configure your preferences',
-                style: GoogleFonts.inter(color: Colors.white70, fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildMenuGrid() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10)],
       ),
       child: GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 2.2,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+        childAspectRatio: 3.8,
         children: _menuItems.map((item) {
           final isActive = _activeMenu == item['id'];
           return GestureDetector(
             onTap: () => setState(() => _activeMenu = item['id']),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 gradient: isActive
                     ? const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)])
@@ -428,7 +397,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           _buildTextField('Department', _deptController),
           const SizedBox(height: 12),
           _buildTextField('Title', _titleController),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           _buildPrimaryButton('Save Changes', _updateProfile),
         ],
       ),
@@ -465,7 +434,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
 
         // Change Password Card
         _buildCard(
@@ -527,7 +496,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // Update Password Button
               SizedBox(
@@ -554,7 +523,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
 
         // Two Factor Auth
         _buildCard(
@@ -659,7 +628,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
           ),
         )),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         _buildCard(
           icon: Icons.settings_outlined,
           title: 'AI Model Configuration',
@@ -680,7 +649,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                     .toList(),
                 onChanged: (v) => setState(() => _feedbackTone = v!),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Text('Grading Sensitivity', style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13)),
               Row(
                 children: [
@@ -726,7 +695,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               _buildPrimaryButton('Save Configuration', () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Configuration saved!'), backgroundColor: Colors.green),
@@ -752,7 +721,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           _notifTile('Deadline Reminders', 'Upcoming assignment deadlines', _deadlineNotif, (v) => setState(() => _deadlineNotif = v)),
           const SizedBox(height: 10),
           _notifTile('At-Risk Student Alerts', 'Predictive analytics warnings', _atRiskNotif, (v) => setState(() => _atRiskNotif = v)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           _buildPrimaryButton('Save Preferences', () {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Preferences saved!'), backgroundColor: Colors.green),
@@ -785,10 +754,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
   Widget _buildCard({required IconData icon, required String title, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10)],
         border: Border.all(color: Colors.grey[100]!),
       ),
@@ -802,7 +771,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           child,
         ],
       ),
