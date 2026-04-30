@@ -32,10 +32,13 @@ class ProfoundApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpForm(),
-        '/profile': (context) => const MainLayout(child: ProfessorProfileScreen()),
+        '/profile': (context) =>
+            const MainLayout(child: ProfessorProfileScreen()),
         '/courses': (context) => const MainLayout(child: CoursesListScreen()),
-        '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
-        '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
+        '/course_details': (context) =>
+            const MainLayout(child: CourseDetailsDashboard()),
+        '/dashboard': (context) =>
+            const MainLayout(child: ProfessorDashboard()),
         '/grading': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           int assignmentId = 0;
@@ -49,8 +52,10 @@ class ProfoundApp extends StatelessWidget {
             ),
           );
         },
-        // '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
-        '/research': (context) => const MainLayout(child: ResearchOrganizerScreen()),
+        '/analytics': (context) =>
+            FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
+        '/research': (context) =>
+            const MainLayout(child: ResearchOrganizerScreen()),
         '/settings': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           int userId = 0;
@@ -59,11 +64,12 @@ class ProfoundApp extends StatelessWidget {
           }
           return MainLayout(child: SystemSettingsScreen(userId: userId));
         },
-        '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
-        '/exam_generator': (context) => const MainLayout(child: AIExamGenerator()),
+        '/generate_lecture': (context) =>
+            const MainLayout(child: AILectureScreen()),
+        '/exam_generator': (context) =>
+            const MainLayout(child: AIExamGenerator()),
       },
       home: const LoginScreen(),
-
     );
   }
 }
