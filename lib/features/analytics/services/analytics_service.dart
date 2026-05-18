@@ -20,6 +20,8 @@ class AnalyticsService {
     int? courseId,
     required String semester,
     int? days,
+    String? fromDate,
+    String? toDate,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/analysis/'),
@@ -28,6 +30,8 @@ class AnalyticsService {
         if (courseId != null) "course_id": courseId,
         if (semester != "All Semesters") "semester": semester,
         if (days != null) "days": days,
+        if (fromDate != null) "from_date": fromDate,
+        if (toDate != null) "to_date": toDate,
       }),
     );
 
@@ -68,7 +72,9 @@ class AnalyticsService {
       if (response.statusCode == 200) {
         return responseBody;
       } else {
-        return "error: ${response.statusCode} - $responseBody";
+        final decoded = jsonDecode(responseBody);
+
+        return "error: ${decoded['message']}";
       }
     } catch (e) {
       return "error: $e";
@@ -93,6 +99,8 @@ class AnalyticsService {
     int? courseId,
     String? semester,
     int? days,
+    String? fromDate,
+    String? toDate,
   }) async {
     final url = Uri.parse("$baseUrl/analysis/export");
 
@@ -102,6 +110,8 @@ class AnalyticsService {
           if (courseId != null) "course_id": courseId.toString(),
           if (semester != null) "semester": semester,
           if (days != null) "days": days.toString(),
+          if (fromDate != null) "from_date": fromDate,
+          if (toDate != null) "to_date": toDate,
         },
       ),
       headers: {"Content-Type": "application/json"},

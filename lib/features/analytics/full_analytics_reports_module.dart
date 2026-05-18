@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'services/analytics_service.dart';
+import 'package:dio/dio.dart';
 
 class FullAnalyticsReportsModule extends StatefulWidget {
   final VoidCallback onBack;
@@ -21,6 +22,8 @@ class _FullAnalyticsReportsModuleState
   String selectedCourse = 'All Courses';
   String selectedSemester = 'All Semesters';
   String dateRange = 'Current Semester';
+  DateTime? fromDate;
+  DateTime? toDate;
   bool showFilters = false;
   bool isUploading = false;
   bool showReportConfig = false;
@@ -45,7 +48,7 @@ class _FullAnalyticsReportsModuleState
     {
       'key': 'includeStudentPII',
       'title': 'Include Student PII',
-      'subtitle': 'Names, IDs, and contact information',
+      'subtitle': 'Names, IDs, and Departments',
     },
     {
       'key': 'includeDepartmentBenchmarks',
@@ -152,7 +155,11 @@ class _FullAnalyticsReportsModuleState
               SizedBox(width: 8),
               Text(
                 "Intelligent Data Upload",
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -160,11 +167,14 @@ class _FullAnalyticsReportsModuleState
           const SizedBox(height: 8),
 
           const Text(
-            "Upload existing grade sheets or attendance records for advanced analysis",
-            style: TextStyle(color: Color(0xFFF3E8FF), fontSize: 13),
+            "Upload grade sheets or attendance files for analytics processing",
+            style: TextStyle(
+              color: Color.fromARGB(255, 230, 220, 240),
+              fontSize: 13,
+            ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -181,44 +191,139 @@ class _FullAnalyticsReportsModuleState
                 : () async {
                     setState(() => isUploading = true);
 
-                    final result = await AnalyticsService.uploadFile();
+                    try {
+                      final result = await AnalyticsService.uploadFile();
 
-                    setState(() => isUploading = false);
+                      if (!mounted) return;
 
-                    if (result.startsWith("error")) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(result)));
-                    } else if (result == "cancelled") {
-                      return;
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Upload successful 🎉")),
-                      );
+                      // user cancelled picker
+                      if (result == "cancelled") {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Upload cancelled"),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
 
-                      // 🔥 IMPORTANT: refresh analytics after upload
-                      final data = await AnalyticsService.getAnalytics(
+                        return;
+                      }
+
+                      // backend returned error
+                      if (result.startsWith("error:")) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result.replaceFirst("error:", "").trim(),
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+
+                        return;
+                      }
+
+                      // refresh analytics after successful upload
+                      final analyticsData = await AnalyticsService.getAnalytics(
                         courseId: selectedCourseId,
                         semester: selectedSemester,
                         days: getDays(dateRange),
                       );
 
+                      List<dynamic> benchmarksRaw = [];
+
+                      if (selectedCourseId != null) {
+                        benchmarksRaw = await AnalyticsService.getBenchmarks(
+                          selectedCourseId!,
+                        );
+                      }
+
+                      if (!mounted) return;
+
                       setState(() {
                         predictionData = Map<String, dynamic>.from(
-                          data['prediction'] ?? {},
+                          analyticsData['prediction'] ?? {},
                         );
+
                         performanceDistribution = Map<String, dynamic>.from(
-                          data['performanceDistribution'] ?? {},
+                          analyticsData['performanceDistribution'] ?? {},
                         );
 
                         correlationData = Map<String, dynamic>.from(
-                          data['correlation'] ?? {},
+                          analyticsData['correlation'] ?? {},
                         );
 
                         errorAnalysisData = List<Map<String, dynamic>>.from(
-                          data['errorAnalysis'] ?? [],
+                          analyticsData['errorAnalysis'] ?? [],
+                        );
+
+                        departmentBenchmarks = List<Map<String, dynamic>>.from(
+                          benchmarksRaw,
                         );
                       });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "File uploaded and analytics updated successfully",
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } on FormatException {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Invalid file format. Please upload CSV or Excel file.",
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+
+                      String errorMessage = "Upload failed. Please try again.";
+
+                      if (e is DioException) {
+                        final statusCode = e.response?.statusCode;
+                        final data = e.response?.data;
+
+                        if (data is Map && data['message'] != null) {
+                          errorMessage = data['message'];
+                        } else if (statusCode == 400) {
+                          errorMessage =
+                              "Invalid file structure or missing columns.";
+                        } else if (statusCode == 401) {
+                          errorMessage = "Session expired. Please login again.";
+                        } else if (statusCode == 413) {
+                          errorMessage = "File size too large.";
+                        } else if (statusCode == 415) {
+                          errorMessage = "Unsupported file type.";
+                        } else if (statusCode == 500) {
+                          errorMessage = "Server error while processing file.";
+                        }
+                      } else {
+                        final error = e.toString().toLowerCase();
+
+                        if (error.contains("socket")) {
+                          errorMessage = "No internet connection.";
+                        } else if (error.contains("timeout")) {
+                          errorMessage = "Upload timed out.";
+                        }
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(errorMessage),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => isUploading = false);
+                      }
                     }
                   },
 
@@ -236,6 +341,290 @@ class _FullAnalyticsReportsModuleState
       ),
     );
   }
+  // Widget _buildUploadSection() {
+  //   return Container(
+  //     margin: const EdgeInsets.only(bottom: 16),
+  //     padding: const EdgeInsets.all(16),
+  //     decoration: BoxDecoration(
+  //       gradient: const LinearGradient(
+  //         colors: [Color(0xFF9333EA), Color(0xFF7E22CE)],
+  //       ),
+  //       borderRadius: BorderRadius.circular(16),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           children: const [
+  //             Icon(LucideIcons.upload, color: Colors.white, size: 20),
+  //             SizedBox(width: 8),
+  //             Text(
+  //               "Intelligent Data Upload",
+  //               style: TextStyle(fontSize: 16, color: Colors.white),
+  //             ),
+  //           ],
+  //         ),
+
+  //         const SizedBox(height: 8),
+
+  //         const Text(
+  //           "Upload existing grade sheets or attendance records for advanced analysis",
+  //           style: TextStyle(
+  //             color: Color.fromARGB(255, 79, 56, 103),
+  //             fontSize: 13,
+  //           ),
+  //         ),
+
+  //         const SizedBox(height: 12),
+
+  //         ElevatedButton.icon(
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.white,
+  //             foregroundColor: const Color(0xFF7E22CE),
+  //             minimumSize: const Size(double.infinity, 50),
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(12),
+  //             ),
+  //           ),
+
+  //           onPressed: isUploading
+  //               ? null
+  //               : () async {
+  //                   setState(() => isUploading = true);
+
+  //                   try {
+  //                     final result = await AnalyticsService.uploadFile();
+
+  //                     if (result == "cancelled") {
+  //                       if (!mounted) return;
+
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         const SnackBar(
+  //                           content: Text("Upload cancelled"),
+  //                           backgroundColor: Colors.orange,
+  //                         ),
+  //                       );
+
+  //                       return;
+  //                     }
+
+  //                     // backend returned error
+  //                     if (result.startsWith("error")) {
+  //                       if (!mounted) return;
+
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         SnackBar(
+  //                           content: Text(result.replaceFirst("error:", "")),
+  //                           backgroundColor: Colors.red,
+  //                         ),
+  //                       );
+
+  //                       return;
+  //                     }
+
+  //                     // fetch analytics after successful upload
+  //                     final data = await AnalyticsService.getAnalytics(
+  //                       courseId: selectedCourseId,
+  //                       semester: selectedSemester,
+  //                       days: getDays(dateRange),
+  //                     );
+
+  //                     // validate sections
+  //                     final newPrediction = Map<String, dynamic>.from(
+  //                       data['prediction'] ?? {},
+  //                     );
+
+  //                     final newPerformance = Map<String, dynamic>.from(
+  //                       data['performanceDistribution'] ?? {},
+  //                     );
+
+  //                     final newCorrelation = Map<String, dynamic>.from(
+  //                       data['correlation'] ?? {},
+  //                     );
+
+  //                     final newErrors = List<Map<String, dynamic>>.from(
+  //                       data['errorAnalysis'] ?? [],
+  //                     );
+  //                     List<Map<String, dynamic>> newBenchmarks = [];
+
+  //                     if (selectedCourseId != null) {
+  //                       final benchmarkResponse =
+  //                           await AnalyticsService.getBenchmarks(
+  //                             selectedCourseId!,
+  //                           );
+
+  //                       newBenchmarks = List<Map<String, dynamic>>.from(
+  //                         benchmarkResponse,
+  //                       );
+  //                     }
+  //                     List<String> missingSections = [];
+
+  //                     if (newPrediction.isEmpty) {
+  //                       missingSections.add("Prediction");
+  //                     }
+
+  //                     if (newPerformance.isEmpty) {
+  //                       missingSections.add("Performance Distribution");
+  //                     }
+
+  //                     if (newCorrelation.isEmpty) {
+  //                       missingSections.add("Correlation Analysis");
+  //                     }
+
+  //                     if (newErrors.isEmpty) {
+  //                       missingSections.add("Error Analysis");
+  //                     }
+
+  //                     if (!mounted) return;
+
+  //                     setState(() {
+  //                       predictionData = newPrediction;
+
+  //                       performanceDistribution = newPerformance;
+
+  //                       correlationData = newCorrelation;
+
+  //                       errorAnalysisData = newErrors;
+  //                       departmentBenchmarks = newBenchmarks;
+  //                     });
+
+  //                     if (missingSections.isEmpty) {
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         const SnackBar(
+  //                           content: Text(
+  //                             "Upload successful and all analytics updated ",
+  //                           ),
+  //                           backgroundColor: Colors.green,
+  //                         ),
+  //                       );
+  //                     } else {
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         SnackBar(
+  //                           content: Text(
+  //                             "Upload completed but some sections missing: ${missingSections.join(", ")}",
+  //                           ),
+  //                           backgroundColor: Colors.orange,
+  //                         ),
+  //                       );
+  //                     }
+  //                   } on FormatException {
+  //                     ScaffoldMessenger.of(context).showSnackBar(
+  //                       const SnackBar(
+  //                         content: Text(
+  //                           "Invalid file format. Please upload CSV or Excel file.",
+  //                         ),
+  //                         backgroundColor: Colors.red,
+  //                       ),
+  //                     );
+  //                   } catch (e) {
+  //                     String errorMessage =
+  //                         "Upload failed. Please try again with a valid Excel or CSV file.";
+
+  //                     String extractMessage(dynamic data) {
+  //                       if (data == null) return "";
+
+  //                       if (data is String) return data;
+
+  //                       if (data is Map) {
+  //                         final detail = data['detail'];
+
+  //                         if (detail is Map) {
+  //                           return detail['message'] ??
+  //                               detail['error'] ??
+  //                               detail.toString();
+  //                         }
+
+  //                         return data['message'] ??
+  //                             data['error'] ??
+  //                             data['detail'] ??
+  //                             data.toString();
+  //                       }
+
+  //                       return data.toString();
+  //                     }
+
+  //                     if (e is DioException) {
+  //                       final statusCode = e.response?.statusCode;
+  //                       final data = e.response?.data;
+
+  //                       String serverMessage = "";
+
+  //                       if (data is Map) {
+  //                         serverMessage =
+  //                             data['message'] ?? data['detail'] ?? "";
+  //                       } else {
+  //                         serverMessage = data.toString();
+  //                       }
+  //                       if (statusCode == 400) {
+  //                         errorMessage = serverMessage.isNotEmpty
+  //                             ? serverMessage
+  //                             : "Invalid file data. Please check the file content and try again.";
+  //                       } else if (statusCode == 401) {
+  //                         errorMessage = "Session expired. Please login again.";
+  //                       } else if (statusCode == 403) {
+  //                         errorMessage =
+  //                             "You do not have permission to upload this file.";
+  //                       } else if (statusCode == 404) {
+  //                         errorMessage =
+  //                             "Upload service not found. Please contact support.";
+  //                       } else if (statusCode == 413) {
+  //                         errorMessage =
+  //                             "File size is too large. Please upload a smaller file.";
+  //                       } else if (statusCode == 415) {
+  //                         errorMessage =
+  //                             "Unsupported file type. Please upload Excel or CSV files only.";
+  //                       } else if (statusCode == 500) {
+  //                         errorMessage =
+  //                             "Server error occurred while processing the file.";
+  //                       } else {
+  //                         errorMessage = serverMessage.isNotEmpty
+  //                             ? serverMessage
+  //                             : "Unexpected server error occurred.";
+  //                       }
+  //                     } else {
+  //                       final error = e.toString().toLowerCase();
+
+  //                       if (error.contains("socket")) {
+  //                         errorMessage =
+  //                             "No internet connection. Please check your network.";
+  //                       } else if (error.contains("timeout")) {
+  //                         errorMessage = "Upload timed out. Please try again.";
+  //                       } else if (error.contains("format")) {
+  //                         errorMessage =
+  //                             "Invalid file format. Please upload CSV or Excel file.";
+  //                       }
+  //                     }
+
+  //                     if (!mounted) return;
+
+  //                     ScaffoldMessenger.of(context).showSnackBar(
+  //                       SnackBar(
+  //                         content: Text(errorMessage),
+  //                         backgroundColor: Colors.red,
+  //                         behavior: SnackBarBehavior.floating,
+  //                       ),
+  //                     );
+  //                   } finally {
+  //                     if (mounted) {
+  //                       setState(() => isUploading = false);
+  //                     }
+  //                   }
+  //                 },
+
+  //           icon: isUploading
+  //               ? const SizedBox(
+  //                   width: 18,
+  //                   height: 18,
+  //                   child: CircularProgressIndicator(strokeWidth: 2),
+  //                 )
+  //               : const Icon(LucideIcons.fileSpreadsheet, size: 18),
+
+  //           label: Text(isUploading ? "Uploading..." : "Upload Excel/CSV File"),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildFilterSection() {
     return Container(
@@ -283,70 +672,180 @@ class _FullAnalyticsReportsModuleState
                     },
                   ),
                   const SizedBox(height: 12),
+
                   _buildDropdown(
                     "Semester",
                     selectedSemester,
-                    ['Fall 2025', 'Spring 2025', 'Fall 2024', 'All Semesters'],
-                    (val) => setState(() => selectedSemester = val!),
+                    [
+                      'All Semesters',
+                      'Fall 2025',
+                      'Spring 2026',
+                      'Summer 2026',
+                    ],
+                    (val) {
+                      setState(() {
+                        selectedSemester = val!;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
-                  _buildDropdown("Date Range", dateRange, [
-                    'Current Semester',
-                    'Last 30 Days',
-                    'Last Quarter',
-                    'Academic Year',
-                  ], (val) => setState(() => dateRange = val!)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (isLoading) return;
+                  _buildDropdown(
+                    "Date Range",
+                    dateRange,
+                    [
+                      'Current Semester',
+                      'Last 30 Days',
+                      'Last Quarter',
+                      'Academic Year',
+                      'Custom Range',
+                    ],
+                    (val) {
+                      setState(() {
+                        dateRange = val!;
 
-                      setState(() => isLoading = true);
-
-                      try {
-                        final analyticsData =
-                            await AnalyticsService.getAnalytics(
-                              courseId: selectedCourseId,
-                              semester: selectedSemester,
-                              days: getDays(dateRange),
-                            );
-
-                        List<dynamic> benchmarksRaw = [];
-
-                        if (selectedCourseId != null) {
-                          benchmarksRaw = await AnalyticsService.getBenchmarks(
-                            selectedCourseId!,
-                          );
+                        if (val != 'Custom Range') {
+                          fromDate = null;
+                          toDate = null;
                         }
-
-                        if (!mounted) return;
-
-                        setState(() {
-                          errorAnalysisData = List<Map<String, dynamic>>.from(
-                            analyticsData['errorAnalysis'] ?? [],
-                          );
-
-                          performanceDistribution = Map<String, dynamic>.from(
-                            analyticsData['performanceDistribution'] ?? {},
-                          );
-
-                          correlationData = Map<String, dynamic>.from(
-                            analyticsData['correlation'] ?? {},
-                          );
-                          predictionData = Map<String, dynamic>.from(
-                            analyticsData['prediction'] ?? {},
-                          );
-                          departmentBenchmarks =
-                              List<Map<String, dynamic>>.from(benchmarksRaw);
-
-                          isLoading = false;
-                          showFilters = false;
-                        });
-                      } catch (e) {
-                        setState(() => isLoading = false);
-                        print(e);
-                      }
+                      });
                     },
+                  ),
+
+                  if (dateRange == 'Custom Range') ...[
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                              );
+
+                              if (picked != null) {
+                                setState(() {
+                                  fromDate = picked;
+                                });
+                              }
+                            },
+
+                            child: Text(
+                              fromDate == null
+                                  ? "Select Start Date"
+                                  : "${fromDate!.year}-${fromDate!.month}-${fromDate!.day}",
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                              );
+
+                              if (picked != null) {
+                                setState(() {
+                                  toDate = picked;
+                                });
+                              }
+                            },
+
+                            child: Text(
+                              toDate == null
+                                  ? "Select End Date"
+                                  : "${toDate!.year}-${toDate!.month}-${toDate!.day}",
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            setState(() => isLoading = true);
+
+                            try {
+                              final analyticsData =
+                                  await AnalyticsService.getAnalytics(
+                                    courseId: selectedCourseId,
+                                    semester: selectedSemester,
+                                    days: getDays(dateRange),
+                                    fromDate: fromDate?.toIso8601String(),
+                                    toDate: toDate?.toIso8601String(),
+                                  );
+
+                              List<dynamic> benchmarksRaw = [];
+
+                              if (selectedCourseId != null) {
+                                benchmarksRaw =
+                                    await AnalyticsService.getBenchmarks(
+                                      selectedCourseId!,
+                                    );
+                              }
+
+                              if (!mounted) return;
+
+                              setState(() {
+                                errorAnalysisData =
+                                    List<Map<String, dynamic>>.from(
+                                      analyticsData['errorAnalysis'] ?? [],
+                                    );
+
+                                performanceDistribution =
+                                    Map<String, dynamic>.from(
+                                      analyticsData['performanceDistribution'] ??
+                                          {},
+                                    );
+
+                                correlationData = Map<String, dynamic>.from(
+                                  analyticsData['correlation'] ?? {},
+                                );
+
+                                predictionData = Map<String, dynamic>.from(
+                                  analyticsData['prediction'] ?? {},
+                                );
+
+                                departmentBenchmarks =
+                                    List<Map<String, dynamic>>.from(
+                                      benchmarksRaw,
+                                    );
+
+                                showFilters = false;
+                              });
+                            } catch (e) {
+                              print(e);
+                            }
+
+                            setState(() => isLoading = false);
+                          },
+
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(LucideIcons.filter, size: 18),
+
+                    label: Text(isLoading ? "Applying..." : "Apply Filters"),
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF9333EA),
                       foregroundColor: Colors.white,
@@ -355,7 +854,6 @@ class _FullAnalyticsReportsModuleState
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text("Apply Filters"),
                   ),
                 ],
               ),
@@ -557,7 +1055,6 @@ class _FullAnalyticsReportsModuleState
 
           const SizedBox(height: 12),
 
-          // 🔹 Patterns
           ...patterns.map((pattern) {
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
@@ -766,13 +1263,9 @@ class _FullAnalyticsReportsModuleState
   }
 
   Widget _buildPredictiveChart() {
-    // =========================
-    // ✅ SAFE CAST (FIX JSON ERROR)
-    // =========================
     final chart = List<Map<String, dynamic>>.from(
       predictionData['chart'] ?? [],
     );
-
     final meta = predictionData['meta'] ?? {};
 
     final double finalPrediction = (meta['final_prediction'] ?? 0).toDouble();
@@ -780,25 +1273,19 @@ class _FullAnalyticsReportsModuleState
     final int weeks = meta['weeks'] ?? 0;
     final int atRisk = meta['at_risk_students'] ?? 0;
 
-    // =========================
-    // ✅ INSIGHT (UI ONLY)
-    // =========================
     final String insight =
         "Based on current trends, class average expected to reach "
         "${finalPrediction.toStringAsFixed(0)}% by week $weeks. "
         "Recommend intervention for $atRisk at-risk students to improve trajectory.";
 
-    // =========================
-    // ✅ BUILD FL SPOTS
-    // =========================
     List<FlSpot> actualSpots = [];
     List<FlSpot> predictedSpots = [];
 
     for (int i = 0; i < chart.length; i++) {
       final item = chart[i];
 
-      final actual = item['actual'];
-      final predicted = item['predicted'];
+      final actual = item['actual'] as num?;
+      final predicted = item['predicted'] as num?;
 
       if (actual != null) {
         actualSpots.add(FlSpot(i.toDouble(), (actual as num).toDouble()));
@@ -809,174 +1296,171 @@ class _FullAnalyticsReportsModuleState
       }
     }
 
-    // =========================
-    // ✅ LABELS (FIXED)
-    // =========================
-    final labels = chart.map((e) => e['label'].toString()).toList();
-
-    // =========================
-    // 🔥 UI RETURN
-    // =========================
+    final labels = chart.map((e) => e['label']?.toString() ?? '').toList();
     return _buildCard(
       title: "Predictive Performance Model",
       subtitle:
           "Machine learning predictions based on current performance trends",
       icon: LucideIcons.activity,
       badge: "AI-Powered",
-      child: Column(
-        children: [
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: 100,
-
-                // =========================
-                // TOOLTIP
-                // =========================
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (spot) => Colors.white,
-                    getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                      return touchedBarSpots.map((barSpot) {
-                        final isActual = barSpot.barIndex == 0;
-
-                        return LineTooltipItem(
-                          '${isActual ? "Actual" : "Predicted"}: ${barSpot.y.toInt()}',
-                          TextStyle(
-                            color: isActual
-                                ? const Color(0xFF9333EA)
-                                : const Color(0xFFF59E0B),
-                            fontSize: 12,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
+      child: chart.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: Text(
+                  "No prediction data available",
+                  style: TextStyle(color: Colors.grey),
                 ),
+              ),
+            )
+          : Column(
+              children: [
+                SizedBox(
+                  height: 200,
+                  child: LineChart(
+                    LineChartData(
+                      clipData: FlClipData.all(),
+                      minY: 0,
+                      maxY: 100,
 
-                // =========================
-                // GRID
-                // =========================
-                gridData: FlGridData(
-                  show: true,
-                  getDrawingHorizontalLine: (value) =>
-                      const FlLine(color: Color(0xFFF0F0F0), strokeWidth: 1),
-                  getDrawingVerticalLine: (value) =>
-                      const FlLine(color: Color(0xFFF0F0F0), strokeWidth: 1),
-                ),
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (spot) => Colors.white,
+                          getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                            return touchedBarSpots.map((barSpot) {
+                              final isActual = barSpot.barIndex == 0;
 
-                // =========================
-                // TITLES
-                // =========================
-                titlesData: FlTitlesData(
-                  show: true,
-
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: 10,
-                      getTitlesWidget: (val, _) => Text(
-                        val.toInt().toString(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7280),
+                              return LineTooltipItem(
+                                '${isActual ? "Actual" : "Predicted"}: ${barSpot.y.toInt()}',
+                                TextStyle(
+                                  color: isActual
+                                      ? const Color(0xFF9333EA)
+                                      : const Color(0xFFF59E0B),
+                                  fontSize: 12,
+                                ),
+                              );
+                            }).toList();
+                          },
                         ),
                       ),
-                    ),
-                  ),
 
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (val, _) {
-                        int index = val.toInt();
+                      gridData: FlGridData(
+                        show: true,
+                        getDrawingHorizontalLine: (value) => const FlLine(
+                          color: Color(0xFFF0F0F0),
+                          strokeWidth: 1,
+                        ),
+                        getDrawingVerticalLine: (value) => const FlLine(
+                          color: Color(0xFFF0F0F0),
+                          strokeWidth: 1,
+                        ),
+                      ),
 
-                        if (index >= 0 && index < labels.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              labels[index],
+                      titlesData: FlTitlesData(
+                        show: true,
+
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            interval: 10,
+                            getTitlesWidget: (val, _) => Text(
+                              val.toInt().toString(),
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: Color(0xFF6B7280),
                               ),
                             ),
-                          );
-                        }
-                        return const Text("");
-                      },
+                          ),
+                        ),
+
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: 1,
+                            getTitlesWidget: (val, meta) {
+                              final index = val.toInt();
+
+                              if (index < 0 || index >= labels.length) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final label = labels[index];
+
+                              if (label.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  label,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: actualSpots,
+                          isCurved: true,
+                          color: const Color(0xFF9333EA),
+                          barWidth: 3,
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: const Color(0xFF9333EA).withOpacity(0.1),
+                          ),
+                        ),
+                        LineChartBarData(
+                          spots: predictedSpots,
+                          isCurved: true,
+                          color: const Color(0xFFF59E0B),
+                          barWidth: 2,
+                          dashArray: [5, 5],
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: const Color(0xFFF59E0B).withOpacity(0.1),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
-                // =========================
-                // LINES
-                // =========================
-                lineBarsData: [
-                  // ACTUAL
-                  LineChartBarData(
-                    spots: actualSpots,
-                    isCurved: true,
-                    color: const Color(0xFF9333EA),
-                    barWidth: 3,
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: const Color(0xFF9333EA).withOpacity(0.1),
-                    ),
-                  ),
+                const SizedBox(height: 16),
 
-                  // PREDICTED
-                  LineChartBarData(
-                    spots: predictedSpots,
-                    isCurved: true,
-                    color: const Color(0xFFF59E0B),
-                    barWidth: 2,
-                    dashArray: [5, 5],
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: const Color(0xFFF59E0B).withOpacity(0.1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendItem(
+                      "Actual Performance",
+                      const Color(0xFF9333EA),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 20),
+                    _buildLegendItem(
+                      "Predicted Performance",
+                      const Color(0xFFF59E0B),
+                      isDashed: true,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
 
-          const SizedBox(height: 16),
-
-          // =========================
-          // LEGEND
-          // =========================
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegendItem("Actual Performance", const Color(0xFF9333EA)),
-              const SizedBox(width: 20),
-              _buildLegendItem(
-                "Predicted Performance",
-                const Color(0xFFF59E0B),
-                isDashed: true,
-              ),
-            ],
-          ),
-        ],
-      ),
-
-      // =========================
-      // INSIGHT FOOTER
-      // =========================
       footer: _buildInsightBox("Prediction Insight", insight),
     );
   }
@@ -1012,7 +1496,6 @@ class _FullAnalyticsReportsModuleState
                 minY: 0,
                 maxY: 100,
 
-                // 🚨 أهم تعديل: تعطيل mouse tracker crash
                 scatterTouchData: ScatterTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
@@ -1156,7 +1639,7 @@ class _FullAnalyticsReportsModuleState
         pieData.add({
           "name": key,
           "value": percentage,
-          "count": count, // 🔥 لو حابب تستخدمه
+          "count": count,
           "color": colors[i % colors.length],
         });
 
@@ -1294,7 +1777,6 @@ class _FullAnalyticsReportsModuleState
 
                   const SizedBox(height: 12),
 
-                  /// ✅ CHECKBOXES
                   ...reportOptions.map((option) {
                     final String key = option['key']!;
                     return Padding(
@@ -1379,6 +1861,8 @@ class _FullAnalyticsReportsModuleState
                   courseId: selectedCourseId,
                   semester: selectedSemester,
                   days: getDays(dateRange),
+                  fromDate: fromDate?.toIso8601String(),
+                  toDate: toDate?.toIso8601String(),
                 );
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1406,7 +1890,7 @@ class _FullAnalyticsReportsModuleState
       label: Text(
         isExporting
             ? "Generating..."
-            : "Export ${selectedFormat.toUpperCase()} Report",
+            : "Generate & Export Format ${selectedFormat.toUpperCase()} Report",
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFD97706),
