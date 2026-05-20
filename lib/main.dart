@@ -3,6 +3,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/profile_screen.dart';
 import 'features/courses/screens/courses_list_screen.dart';
+import 'features/courses/screens/ai_exam_generator.dart';
 import 'features/courses/screens/course_details_screen.dart';
 import 'features/courses/screens/ai_lecture_screen.dart';
 import 'features/dashboard/screens/professor_dashboard.dart';
@@ -11,7 +12,6 @@ import 'features/grading/ai_grading_module.dart';
 import 'features/analytics/full_analytics_reports_module.dart';
 import 'features/research/screens/research_organizer_screen.dart';
 import 'features/settings/screens/system_settings_screen.dart';
-import 'features/assignments/assignments_screen.dart';
 
 void main() {
   runApp(const ProfoundApp());
@@ -40,25 +40,15 @@ class ProfoundApp extends StatelessWidget {
         // '/analytics': (context) => FullAnalyticsReportsModule(onBack: () => Navigator.pop(context)),
         '/research': (context) => const ResearchOrganizerScreen(),
         '/settings': (context) {
-          // Extract userId from route arguments passed by the sidebar
           final args = ModalRoute.of(context)?.settings.arguments;
           int userId = 0;
           if (args is Map) {
             userId = (args['id'] ?? args['user_id'] ?? 0) as int;
           }
-          return SystemSettingsScreen(userId: userId);
+          return MainLayout(child: SystemSettingsScreen(userId: userId));
         },
-       // '/generate_lecture': (context) => MainLayout(child: AILectureScreen()),
-        '/assignments': (context) {
-          // 1. Extract arguments as a Map
-          final args = ModalRoute.of(context)?.settings.arguments as Map?;
-
-          // 2. Pass both courseId and courseName to the screen
-          return AssignmentsScreen(
-            courseId: args?['course_id'] ?? 0,
-            courseName: args?['course_name'] ?? 'Course', // Fallback to 'Course' if name is missing
-          );
-        },
+        '/generate_lecture': (context) => const MainLayout(child: AILectureScreen()),
+        '/exam_generator': (context) => const MainLayout(child: AIExamGenerator()),
       },
       home: const LoginScreen(),
 
