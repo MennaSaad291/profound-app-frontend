@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:file_picker/file_picker.dart';
 
 import '../../assignments/assignments_screen.dart';
@@ -736,7 +739,6 @@ class _StudentsSheetState extends State<_StudentsSheet> {
     if (result == null || result.files.single.bytes == null) return;
 
     setState(() => isUploading = true);
-
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Row(children: [
         SizedBox(width: 18, height: 18,
@@ -750,33 +752,59 @@ class _StudentsSheetState extends State<_StudentsSheet> {
 
     try {
       final file = result.files.single;
-      final request = http.MultipartRequest('POST',
-        Uri.parse('${widget.baseUrl}/courses/${widget.course['id']}/upload-students'));
-      request.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
+      final bytes = file.bytes!;
+      final url = '${widget.baseUrl}/courses/${widget.course['id']}/upload-students';
 
-      final streamedRes = await request.send().timeout(const Duration(seconds: 60));
-      final res = await http.Response.fromStream(streamedRes);
+      // Use dart:html FormData + XmlHttpRequest — flutter web's http.MultipartRequest
+      // does not correctly set the multipart boundary on web, causing silent failures.
+      final formData = html.FormData();
+      final blob = html.Blob([bytes]);
+      formData.appendBlob('file', blob, file.name);
 
+      final xhr = html.HttpRequest();
+      xhr.open('POST', url);
+
+      // Use a Completer to await the XHR response
+      final completer = Completer<Map<String, dynamic>>();
+      xhr.onLoad.listen((_) {
+        completer.complete({
+          'status': xhr.status,
+          'body': xhr.responseText ?? '',
+        });
+      });
+      xhr.onError.listen((_) {
+        completer.completeError('Network error');
+      });
+      xhr.onTimeout.listen((_) {
+        completer.completeError('TimeoutException');
+      });
+      xhr.timeout = 60000; // 60 seconds
+      xhr.send(formData);
+
+      final response = await completer.future;
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-      final data = jsonDecode(res.body);
+      final status = response['status'] as int;
+      final body = response['body'] as String;
+      Map<String, dynamic> data = {};
+      try { data = jsonDecode(body); } catch (_) {}
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(res.statusCode == 200
+        content: Text(status == 200
           ? (data['message'] ?? 'Upload complete')
-          : 'Error: ${data['detail'] ?? res.body}'),
-        backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
+          : 'Error: ${data['detail'] ?? body}'),
+        backgroundColor: status == 200 ? Colors.green : Colors.red,
         duration: const Duration(seconds: 5),
       ));
-      if (res.statusCode == 200) _fetchStudents();
+      if (status == 200) _fetchStudents();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      final msg = e.toString().contains('TimeoutException')
-        ? "Upload timed out — try a smaller file or check your connection"
-        : "Upload failed: $e";
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
+        content: Text(e.toString().contains('TimeoutException')
+          ? "Upload timed out — try a smaller file"
+          : "Upload failed: $e"),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 6),
       ));
