@@ -71,11 +71,9 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
   void _showAddEditCourseSheet({Map<String, dynamic>? existing}) {
     final codeCon = TextEditingController(text: existing?['code'] ?? '');
     final nameCon = TextEditingController(text: existing?['name'] ?? '');
-    final roomCon = TextEditingController(text: existing?['room'] ?? '');
     final deptCon = TextEditingController(text: existing?['department'] ?? '');
 
     String selectedSemester = existing?['semester'] ?? '';
-    String selectedSchedule = existing?['schedule'] ?? '';
     String status = existing?['status'] ?? 'active';
     final isEdit = existing != null;
 
@@ -85,15 +83,12 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
       'Fall 2026', 'Spring 2027',
     ];
 
-    final List<String> days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-    Set<String> selectedDays = {};
-    TimeOfDay? startTime;
-    TimeOfDay? endTime;
+    final List<String> weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-    // Pre-fill days from existing schedule
-    if (selectedSchedule.isNotEmpty && selectedSchedule != 'TBA') {
-      final parts = selectedSchedule.split(' ');
-      if (parts.isNotEmpty) selectedDays = parts[0].split('/').toSet();
+    // Each slot: {day, start, end, room}
+    List<Map<String, dynamic>> slots = [];
+    if (isEdit) {
+      // Will be loaded from API after sheet opens
     }
 
     showModalBottomSheet(
@@ -104,17 +99,114 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setModal) {
 
-        void rebuildSchedule() {
-          if (selectedDays.isEmpty) { selectedSchedule = 'TBA'; return; }
-          final ordered = days.where((d) => selectedDays.contains(d)).toList();
-          String s = ordered.join('/');
-          if (startTime != null && endTime != null) {
-            String fmt(TimeOfDay t) =>
-              '${t.hour.toString().padLeft(2,'0')}:${t.minute.toString().padLeft(2,'0')}';
-            s += ' ${fmt(startTime!)}-${fmt(endTime!)}';
+        // Load existing slots when editing
+        Future<void> loadSlots() async {
+          if (!isEdit) return;
+          final res = await http.get(Uri.parse('$_base/courses/${existing!['id']}/schedule'));
+          if (res.statusCode == 200 && ctx.mounted) {
+            final data = jsonDecode(res.body) as List;
+            setModal(() {
+              slots = data.map<Map<String, dynamic>>((s) => {
+                'id': s['id'],
+                'day': s['day'],
+                'start': s['start_time'],
+                'end': s['end_time'],
+                'room': TextEditingController(text: s['room'] ?? ''),
+                'startCon': TextEditingController(text: s['start_time'] ?? '09:00'),
+                'endCon': TextEditingController(text: s['end_time'] ?? '10:30'),
+              }).toList();
+            });
           }
-          selectedSchedule = s;
         }
+
+        Widget buildSlotRow(int i, Map<String, dynamic> slot) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FE),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('Slot ${i + 1}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => setModal(() => slots.removeAt(i)),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.close, size: 14, color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Day picker
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: weekDays.contains(slot['day']) ? slot['day'] : weekDays[0],
+                      isExpanded: true,
+                      isDense: true,
+                      items: weekDays.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))).toList(),
+                      onChanged: (v) => setModal(() => slot['day'] = v ?? weekDays[0]),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Time row
+                Row(children: [
+                  Expanded(child: _inlineTimePicker('Start', slot['startCon'], ctx, (val) => setModal(() => slot['start'] = val))),
+                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('→', style: TextStyle(color: Colors.grey, fontSize: 16))),
+                  Expanded(child: _inlineTimePicker('End', slot['endCon'], ctx, (val) => setModal(() => slot['end'] = val))),
+                ]),
+                const SizedBox(height: 8),
+                // Room
+                TextField(
+                  controller: slot['room'],
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Room / Location (e.g. B201)',
+                    prefixIcon: const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF4F46E5)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    filled: true, fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Trigger load once when sheet opens for edit
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (isEdit && slots.isEmpty) loadSlots();
+        });
 
         return Padding(
           padding: EdgeInsets.only(
@@ -129,17 +221,17 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
 
               // ── Header ──
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(isEdit ? "Edit Course" : "Add New Course",
+                Text(isEdit ? 'Edit Course' : 'Add New Course',
                   style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
                 IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
               ]),
               const SizedBox(height: 16),
 
-              _field(codeCon, "Course Code *", "e.g., CS401"),
-              _field(nameCon, "Course Name *", "e.g., Artificial Intelligence"),
+              _field(codeCon, 'Course Code *', 'e.g., CS401'),
+              _field(nameCon, 'Course Name *', 'e.g., Artificial Intelligence'),
 
-              // ── Semester dropdown ──
-              _sectionLabel("Semester *"),
+              // ── Semester ──
+              _sectionLabel('Semester *'),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -150,7 +242,7 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: semesterOptions.contains(selectedSemester) ? selectedSemester : null,
-                    hint: const Text("Select semester"),
+                    hint: const Text('Select semester'),
                     isExpanded: true,
                     items: semesterOptions.map((s) =>
                       DropdownMenuItem(value: s, child: Text(s))).toList(),
@@ -158,95 +250,52 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // ── Schedule: Days ──
-              _sectionLabel("Schedule"),
-              const Text("Select days:", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 8),
-              Row(children: days.map((day) {
-                final picked = selectedDays.contains(day);
-                return Expanded(child: Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: GestureDetector(
-                    onTap: () => setModal(() {
-                      picked ? selectedDays.remove(day) : selectedDays.add(day);
-                      rebuildSchedule();
-                    }),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: picked ? const Color(0xFF4F46E5) : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(day, textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
-                          color: picked ? Colors.white : Colors.grey)),
-                    ),
-                  ),
-                ));
-              }).toList()),
-              const SizedBox(height: 12),
-
-              // ── Schedule: Time ──
-              const Text("Select time:", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 8),
+              // ── Lecture Schedule ──
               Row(children: [
-                Expanded(child: _timePicker(
-                  label: startTime != null
-                    ? '${startTime!.hour.toString().padLeft(2,'0')}:${startTime!.minute.toString().padLeft(2,'0')}'
-                    : 'Start',
-                  picked: startTime != null,
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: ctx,
-                      initialTime: startTime ?? const TimeOfDay(hour: 9, minute: 0),
-                    );
-                    if (t != null) setModal(() { startTime = t; rebuildSchedule(); });
-                  },
-                )),
-                const Padding(padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text("→", style: TextStyle(color: Colors.grey, fontSize: 18))),
-                Expanded(child: _timePicker(
-                  label: endTime != null
-                    ? '${endTime!.hour.toString().padLeft(2,'0')}:${endTime!.minute.toString().padLeft(2,'0')}'
-                    : 'End',
-                  picked: endTime != null,
-                  onTap: () async {
-                    final t = await showTimePicker(
-                      context: ctx,
-                      initialTime: endTime ?? const TimeOfDay(hour: 10, minute: 30),
-                    );
-                    if (t != null) setModal(() { endTime = t; rebuildSchedule(); });
-                  },
-                )),
-              ]),
-
-              // ── Schedule preview ──
-              if (selectedSchedule.isNotEmpty && selectedSchedule != 'TBA') ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.event, size: 14, color: Color(0xFF4F46E5)),
-                    const SizedBox(width: 6),
-                    Text(selectedSchedule,
-                      style: const TextStyle(
-                        color: Color(0xFF4F46E5), fontWeight: FontWeight.w600, fontSize: 13)),
-                  ]),
+                const Icon(Icons.schedule, size: 16, color: Color(0xFF4F46E5)),
+                const SizedBox(width: 6),
+                Text('Lecture Schedule', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => setModal(() => slots.add({
+                    'day': weekDays[0],
+                    'start': '09:00',
+                    'end': '10:30',
+                    'room': TextEditingController(),
+                    'startCon': TextEditingController(text: '09:00'),
+                    'endCon': TextEditingController(text: '10:30'),
+                  })),
+                  icon: const Icon(Icons.add, size: 16, color: Color(0xFF4F46E5)),
+                  label: const Text('Add Slot', style: TextStyle(color: Color(0xFF4F46E5), fontSize: 13)),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
                 ),
-              ],
+              ]),
+              const SizedBox(height: 8),
+
+              if (slots.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FE),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid),
+                  ),
+                  child: const Center(
+                    child: Text('No slots yet — tap "Add Slot" to add lecture times',
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ),
+                )
+              else
+                ...slots.asMap().entries.map((e) => buildSlotRow(e.key, e.value)).toList(),
+
               const SizedBox(height: 16),
 
-              _field(roomCon, "Room", "e.g., Room 201"),
-              _field(deptCon, "Department", "e.g., Computer Science"),
+              _field(deptCon, 'Department', 'e.g., Computer Science'),
 
               // ── Status ──
-              _sectionLabel("Status"),
+              _sectionLabel('Status'),
               const SizedBox(height: 8),
               Row(children: ['active', 'completed', 'upcoming'].map((s) =>
                 Expanded(child: Padding(
@@ -279,34 +328,72 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   onPressed: () async {
                     if (codeCon.text.isEmpty || nameCon.text.isEmpty || selectedSemester.isEmpty) {
                       ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                        content: Text("Please fill Course Code, Name and Semester"),
+                        content: Text('Please fill Course Code, Name and Semester'),
                         backgroundColor: Colors.red));
                       return;
                     }
                     final body = {
-                      "user_id": userId,
-                      "code": codeCon.text.trim(),
-                      "name": nameCon.text.trim(),
-                      "semester": selectedSemester,
-                      "status": status,
-                      "schedule": selectedSchedule.isEmpty ? 'TBA' : selectedSchedule,
-                      "room": roomCon.text.isEmpty ? 'TBA' : roomCon.text.trim(),
-                      "department": deptCon.text.trim(),
+                      'user_id': userId,
+                      'code': codeCon.text.trim(),
+                      'name': nameCon.text.trim(),
+                      'semester': selectedSemester,
+                      'status': status,
+                      'schedule': 'TBA',
+                      'room': 'TBA',
+                      'department': deptCon.text.trim(),
                     };
+
+                    http.Response courseRes;
+                    int courseId;
                     if (isEdit) {
-                      await http.put(Uri.parse('$_base/courses/${existing!['id']}'),
-                        headers: {"Content-Type": "application/json"}, body: jsonEncode(body));
+                      courseRes = await http.put(Uri.parse('$_base/courses/${existing!['id']}'),
+                        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+                      courseId = existing['id'];
                     } else {
-                      await http.post(Uri.parse('$_base/courses'),
-                        headers: {"Content-Type": "application/json"}, body: jsonEncode(body));
+                      courseRes = await http.post(Uri.parse('$_base/courses'),
+                        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+                      final created = jsonDecode(courseRes.body);
+                      courseId = created['id'];
                     }
+
+                    // Save slots: delete old ones if editing, then post all current slots
+                    if (isEdit) {
+                      // Delete slots that were removed (have no 'id' means new, have 'id' means existing)
+                      final existingSlotIds = slots
+                        .where((s) => s['id'] != null)
+                        .map((s) => s['id'] as int)
+                        .toSet();
+                      // We'll just delete all and re-create for simplicity
+                      final oldSlots = await http.get(Uri.parse('$_base/courses/$courseId/schedule'));
+                      if (oldSlots.statusCode == 200) {
+                        final old = jsonDecode(oldSlots.body) as List;
+                        for (final os in old) {
+                          await http.delete(Uri.parse('$_base/courses/$courseId/schedule/${os['id']}'));
+                        }
+                      }
+                    }
+
+                    for (final slot in slots) {
+                      await http.post(
+                        Uri.parse('$_base/courses/$courseId/schedule'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'day': slot['day'],
+                          'start_time': (slot['startCon'] as TextEditingController).text,
+                          'end_time': (slot['endCon'] as TextEditingController).text,
+                          'room': (slot['room'] as TextEditingController).text.isEmpty
+                            ? 'TBA' : (slot['room'] as TextEditingController).text,
+                        }),
+                      );
+                    }
+
                     if (mounted) Navigator.pop(ctx);
                     _fetchCourses();
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(isEdit ? "Course updated!" : "Course created!"),
+                      content: Text(isEdit ? 'Course updated!' : 'Course created!'),
                       backgroundColor: const Color(0xFF4F46E5)));
                   },
-                  child: Text(isEdit ? "Update Course" : "Create Course",
+                  child: Text(isEdit ? 'Update Course' : 'Create Course',
                     style: const TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
@@ -318,31 +405,44 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
     );
   }
 
+  Widget _inlineTimePicker(String label, TextEditingController con, BuildContext ctx, Function(String) onPicked) =>
+    GestureDetector(
+      onTap: () async {
+        final parts = con.text.split(':');
+        final initial = TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 9,
+          minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
+        );
+        final picked = await showTimePicker(context: ctx, initialTime: initial);
+        if (picked != null) {
+          final val = '${picked.hour.toString().padLeft(2,'0')}:${picked.minute.toString().padLeft(2,'0')}';
+          con.text = val;
+          onPicked(val);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.access_time, size: 14, color: Color(0xFF4F46E5)),
+          const SizedBox(width: 5),
+          Text(con.text.isEmpty ? label : con.text,
+            style: TextStyle(
+              color: con.text.isEmpty ? Colors.grey : const Color(0xFF1F2937),
+              fontSize: 13, fontWeight: FontWeight.w500)),
+        ]),
+      ),
+    );
+
+
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
   );
-
-  Widget _timePicker({required String label, required bool picked, required VoidCallback onTap}) =>
-    GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-        decoration: BoxDecoration(
-          color: picked ? const Color(0xFFEEF2FF) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: picked ? const Color(0xFF4F46E5) : Colors.transparent),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.access_time, size: 16,
-            color: picked ? const Color(0xFF4F46E5) : Colors.grey),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(
-            color: picked ? const Color(0xFF4F46E5) : Colors.grey,
-            fontWeight: FontWeight.w600, fontSize: 13)),
-        ]),
-      ),
-    );
 
   void _showStudentsSheet(Map<String, dynamic> course) {
     showModalBottomSheet(
@@ -634,27 +734,58 @@ class _StudentsSheetState extends State<_StudentsSheet> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom, allowedExtensions: ['xlsx', 'xls', 'csv']);
     if (result == null || result.files.single.bytes == null) return;
+
     setState(() => isUploading = true);
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Row(children: [
+        SizedBox(width: 18, height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        SizedBox(width: 12),
+        Text("Uploading students, please wait..."),
+      ]),
+      duration: Duration(seconds: 60),
+      backgroundColor: Color(0xFF4F46E5),
+    ));
+
     try {
       final file = result.files.single;
       final request = http.MultipartRequest('POST',
         Uri.parse('${widget.baseUrl}/courses/${widget.course['id']}/upload-students'));
       request.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
-      final res = await http.Response.fromStream(await request.send());
+
+      final streamedRes = await request.send().timeout(const Duration(seconds: 60));
+      final res = await http.Response.fromStream(streamedRes);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
       final data = jsonDecode(res.body);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(data['message'] ?? 'Upload complete'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(res.statusCode == 200
+          ? (data['message'] ?? 'Upload complete')
+          : 'Error: ${data['detail'] ?? res.body}'),
         backgroundColor: res.statusCode == 200 ? Colors.green : Colors.red,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
       ));
       if (res.statusCode == 200) _fetchStudents();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Upload failed: $e"), backgroundColor: Colors.red));
-    } finally { setState(() => isUploading = false); }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      final msg = e.toString().contains('TimeoutException')
+        ? "Upload timed out — try a smaller file or check your connection"
+        : "Upload failed: $e";
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 6),
+      ));
+    } finally {
+      if (mounted) setState(() => isUploading = false);
+    }
   }
 
-  Future<void> _deleteStudent(int studentId) async {
+    Future<void> _deleteStudent(int studentId) async {
     await http.delete(Uri.parse(
       '${widget.baseUrl}/courses/${widget.course['id']}/students/$studentId'));
     _fetchStudents();

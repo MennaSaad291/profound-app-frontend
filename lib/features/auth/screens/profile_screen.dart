@@ -122,76 +122,6 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
     );
   }
 
- void _showAddCourseSheet() {
-    final codeCon = TextEditingController();
-    final nameCon = TextEditingController();
-    final semCon = TextEditingController();
-    final schedCon = TextEditingController();
-    final roomCon = TextEditingController();
-    PlatformFile? excelFile;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Add New Course", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-                TextField(controller: codeCon, decoration: const InputDecoration(labelText: "Course Code")),
-                TextField(controller: nameCon, decoration: const InputDecoration(labelText: "Course Name")),
-                TextField(controller: semCon, decoration: const InputDecoration(labelText: "Semester (e.g. Fall 2025)")),
-                TextField(controller: schedCon, decoration: const InputDecoration(labelText: "Schedule (e.g. Mon, Wed 10:00 AM)")),
-                TextField(controller: roomCon, decoration: const InputDecoration(labelText: "Room (e.g. Building A, 201)")),
-                const SizedBox(height: 12),
-                // EXCEL UPLOAD LOGIC
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    FilePickerResult? r = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
-                    if (r != null) setSheetState(() => excelFile = r.files.first);
-                  },
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(excelFile == null ? "Upload Student Excel" : "File: ${excelFile!.name}"),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
-                  onPressed: () async {
-                    if (excelFile == null || profileData == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload an Excel file")));
-                      return;
-                    }
-                    
-                    var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/courses-with-students'));
-                    request.fields['user_id'] = profileData!['id'].toString();
-                    request.fields['code'] = codeCon.text;
-                    request.fields['name'] = nameCon.text;
-                    request.fields['semester'] = semCon.text;
-                    request.fields['schedule'] = schedCon.text;
-                    request.fields['room'] = roomCon.text;
-                    request.files.add(http.MultipartFile.fromBytes('file', excelFile!.bytes!, filename: excelFile!.name));
-
-                    var response = await request.send();
-                    if (response.statusCode == 200) {
-                      Navigator.pop(context);
-                      _fetchProfile(profileData!['id']); // Refreshes Profile screen instantly
-                    }
-                  },
-                  child: const Text("Save Course", style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(height: 14),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-  
   void _showAddPubSheet() {
     final tCon = TextEditingController();
     final jCon = TextEditingController();
@@ -288,14 +218,6 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                     items: profileData!['publications'] ?? [],
                     tag: 'pubs',
                     onAdd: _showAddPubSheet,
-                  ),
-                  _buildCollapsibleSection(
-                    icon: Icons.school_outlined,
-                    title: "Courses Taught",
-                    subtitle: "${(profileData!['courses'] as List).length} courses",
-                    items: profileData!['courses'] ?? [],
-                    tag: 'courses',
-                    onAdd: _showAddCourseSheet,
                   ),
                   _buildCollapsibleSection(
                     icon: Icons.card_membership_outlined,
@@ -437,12 +359,11 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Synced with Google Scholar")));
                 }, icon: const Icon(Icons.link, size: 16, color: Colors.white), label: const Text("Sync Scholar", style: TextStyle(fontSize: 11, color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)))),
               if (tag == 'pubs') const SizedBox(width: 8),
-              Expanded(child: ElevatedButton.icon(onPressed: onAdd, icon: const Icon(Icons.add, size: 16, color: Colors.white), label: Text(tag == 'courses' ? "Add Course" : "Add New", style: const TextStyle(fontSize: 11, color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA)))),
+              Expanded(child: ElevatedButton.icon(onPressed: onAdd, icon: const Icon(Icons.add, size: 16, color: Colors.white), label: Text("Add New", style: const TextStyle(fontSize: 11, color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA)))),
             ]),
           ),
           ...items.map((item) {
             if (tag == 'pubs') return _buildPublicationItem(item);
-            if (tag == 'courses') return _buildCourseItem(item);
             if (tag == 'projects') return _buildProjectItem(item);
             return const SizedBox();
           }),
@@ -460,18 +381,6 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
         const SizedBox(height: 4), Text("${item['journal']} • ${item['year']}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
         const SizedBox(height: 8),
         Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(4)), child: Row(children: [const Icon(Icons.format_quote, size: 12, color: Color(0xFF166534)), Text(" ${item['citations']}", style: const TextStyle(color: Color(0xFF166534), fontSize: 11, fontWeight: FontWeight.bold))])), const SizedBox(width: 8), const Text("Dr. Sarah Johnson +1", style: TextStyle(fontSize: 11, color: Colors.grey))]),
-      ]),
-    );
-  }
-
-  Widget _buildCourseItem(Map<String, dynamic> item) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), padding: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(12)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(item['code'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(10)), child: Text(item['status']?.toUpperCase() ?? "ACTIVE", style: const TextStyle(color: Color(0xFF166534), fontSize: 9, fontWeight: FontWeight.bold)))]),
-        Text(item['name'] ?? "", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 8), Row(children: [const Icon(Icons.calendar_today, size: 12, color: Colors.grey), const SizedBox(width: 4), Text(item['semester'] ?? "Fall 2025", style: const TextStyle(fontSize: 11, color: Colors.grey)), const SizedBox(width: 12), const Icon(Icons.people_outline, size: 12, color: Colors.grey), const SizedBox(width: 4), Text("${item['students'] ?? 0} students", style: const TextStyle(fontSize: 11, color: Colors.grey))]),
-        const SizedBox(height: 12), SizedBox(width: double.infinity, height: 32, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, '/course_details', arguments: item), icon: const Icon(Icons.bar_chart, size: 14, color: Color(0xFF9333EA)), label: const Text("View Analytics", style: TextStyle(fontSize: 11, color: Color(0xFF9333EA))), style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFF3E8FF)), backgroundColor: const Color(0xFFFAF5FF)))),
       ]),
     );
   }

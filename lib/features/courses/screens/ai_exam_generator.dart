@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class AIExamGenerator extends StatefulWidget {
   const AIExamGenerator({super.key});
@@ -21,6 +19,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   String selectedDifficultyMode = 'Medium';
   String selectedBlooms = 'Apply';
   int selectedQuestions = 5;
+  double mcqPercentage = 70; // Mix mode: % of MCQ questions
   bool isLoading = false;
   String? currentExamId;
   List<dynamic> generatedQuestions = [];
@@ -31,6 +30,12 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   List<String> get resolvedTypes {
     if (selectedTypeMode == 'Mix') return ['MCQ', 'Essay'];
     return [selectedTypeMode];
+  }
+
+  Map<String, int> _mixDistribution(int total) {
+    final int mcqCount = (total * mcqPercentage / 100).round().clamp(0, total);
+    final int essayCount = total - mcqCount;
+    return {'MCQ': mcqCount, 'Essay': essayCount};
   }
 
   List<String> get resolvedDifficulties {
@@ -75,36 +80,28 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   Future<void> _downloadExamToDevice(String examId) async {
     setState(() => isLoading = true);
     try {
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = Directory('/storage/emulated/0/Download');
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isWindows) {
-        directory = Directory(
-            '${Platform.environment['USERPROFILE']}\\Downloads');
-      } else {
-        directory = await getApplicationDocumentsDirectory();
+      final url = 'http://127.0.0.1:8000/exams/export-word/$examId';
+
+      // Fetch the file bytes via http
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode != 200) {
+        throw Exception('Server returned ${response.statusCode}');
       }
 
-      String savePath = "${directory!.path}/Profound_Exam_$examId.docx";
-      Dio dio = Dio();
-      await dio.download(
-        'http://127.0.0.1:8000/exams/export-word/$examId',
-        savePath,
-      );
+      // Use the browser's download mechanism (works on Flutter Web)
+      final blob = html.Blob([response.bodyBytes],
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: blobUrl)
+        ..setAttribute('download', 'Profound_Exam_$examId.docx')
+        ..click();
+      html.Url.revokeObjectUrl(blobUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Exam saved to Downloads folder!"),
+          const SnackBar(
+            content: Text("Exam download started!"),
             backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: "Open",
-              textColor: Colors.white,
-              onPressed: () => OpenFile.open(savePath),
-            ),
           ),
         );
       }
@@ -119,91 +116,94 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   }
 
   Future<void> _handleGenerateExam() async {
-    print("=== GENERATE TAPPED ===");
-
     if (_topicController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Please enter a topic first!"),
-            backgroundColor: Colors.red),
+        const SnackBar(content: Text("Please enter a topic first!"), backgroundColor: Colors.red),
       );
       return;
     }
 
-    // ✅ Parse manually entered number
     final int? parsed = int.tryParse(_questionsController.text);
     if (parsed == null || parsed < 1 || parsed > 50) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Please enter a valid number between 1 and 50"),
-            backgroundColor: Colors.red),
+        const SnackBar(content: Text("Please enter a valid number between 1 and 50"), backgroundColor: Colors.red),
       );
       return;
     }
     selectedQuestions = parsed;
 
-    setState(() {
-      isLoading = true;
-      generatedQuestions = [];
-      currentExamId = null;
-    });
+    setState(() { isLoading = true; generatedQuestions = []; currentExamId = null; });
 
     try {
-      final List<String> types = resolvedTypes;
       final List<String> difficulties = resolvedDifficulties;
-
-      // ✅ Use random distribution for Mix, even split for single type
-      final Map<String, int> distribution =
-          _distributeQuestions(types, difficulties, selectedQuestions);
-
-      print("Distribution: $distribution");
-
       List<dynamic> allQuestions = [];
       String? examId;
 
-      for (String type in types) {
-        for (String difficulty in difficulties) {
-          final key = '$type|$difficulty';
-          final int count = distribution[key] ?? 1;
+      // Build a list of (type, difficulty, count) batches
+      // For Mix: use professor-defined percentage; for single type: all questions
+      final Map<String, int> typeMap = selectedTypeMode == 'Mix'
+          ? _mixDistribution(selectedQuestions)
+          : {selectedTypeMode: selectedQuestions};
 
-          if (count == 0) continue;
+      for (final typeEntry in typeMap.entries) {
+        final String type = typeEntry.key;
+        final int typeTotal = typeEntry.value;
+        if (typeTotal == 0) continue;
 
-          print("Requesting $count $type questions at $difficulty");
+        // Split across difficulties
+        final Map<String, int> diffMap = {};
+        if (difficulties.length == 1) {
+          diffMap[difficulties[0]] = typeTotal;
+        } else {
+          int rem = typeTotal;
+          for (int i = 0; i < difficulties.length - 1; i++) {
+            final int share = (typeTotal / difficulties.length).floor().clamp(1, rem - (difficulties.length - 1 - i));
+            diffMap[difficulties[i]] = share;
+            rem -= share;
+          }
+          diffMap[difficulties.last] = rem;
+        }
 
-          final response = await http.post(
-            Uri.parse('http://127.0.0.1:8000/exams/generate'),
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode({
-              "topic": _topicController.text,
-              "number_of_questions": count,
-              "difficulty": difficulty,
-              "blooms_level": selectedBlooms,
-              "question_type": type,
-            }),
-          ).timeout(const Duration(seconds: 300));
+        for (final diffEntry in diffMap.entries) {
+          final String difficulty = diffEntry.key;
+          int remaining = diffEntry.value;
+          if (remaining == 0) continue;
 
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            examId ??= data['exam_id'];
-            allQuestions.addAll(data['questions']);
-            print("Got ${data['questions'].length} questions for $key");
-          } else {
-            throw Exception("Server Error: ${response.statusCode} - ${response.body}");
+          // Batch into max 5 per API call to avoid truncation
+          const int batchSize = 5;
+          while (remaining > 0) {
+            final int batchCount = remaining > batchSize ? batchSize : remaining;
+            final response = await http.post(
+              Uri.parse('http://127.0.0.1:8000/exams/generate'),
+              headers: {"Content-Type": "application/json"},
+              body: jsonEncode({
+                "topic": _topicController.text,
+                "number_of_questions": batchCount,
+                "difficulty": difficulty,
+                "blooms_level": selectedBlooms,
+                "question_type": type,
+              }),
+            ).timeout(const Duration(seconds: 300));
+
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body);
+              examId ??= data['exam_id'];
+              allQuestions.addAll(data['questions']);
+            } else {
+              throw Exception("Server Error: \${response.statusCode} - \${response.body}");
+            }
+            remaining -= batchCount;
           }
         }
       }
 
-      // ✅ Final trim to exact count
+      // Trim to exact count
       if (allQuestions.length > selectedQuestions) {
         allQuestions = allQuestions.sublist(0, selectedQuestions);
       }
 
-      setState(() {
-        currentExamId = examId;
-        generatedQuestions = allQuestions;
-      });
+      setState(() { currentExamId = examId; generatedQuestions = allQuestions; });
 
-      print("Total questions displayed: ${allQuestions.length}");
     } catch (e, stack) {
       print("=== ERROR ===\n$e\n$stack");
       if (mounted) {
@@ -285,30 +285,88 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                     ],
                   ),
                   if (selectedTypeMode == 'Mix') ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEEF2FF),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF4F46E5)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.shuffle,
-                              color: Color(0xFF4F46E5), size: 16),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "MCQ & Essay will be randomly distributed — not split evenly",
-                              style: TextStyle(
-                                  color: Color(0xFF4F46E5), fontSize: 12),
+                    const SizedBox(height: 12),
+                    Builder(builder: (ctx) {
+                      final int total = int.tryParse(_questionsController.text) ?? selectedQuestions;
+                      final int mcqCount = _mixDistribution(total)['MCQ'] ?? 0;
+                      final int essayCount = _mixDistribution(total)['Essay'] ?? 0;
+                      final int mcqPct = mcqPercentage.round();
+                      final int essayPct = 100 - mcqPct;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE0E7FF)),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header
+                            Row(children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(color: const Color(0xFF4F46E5), borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.tune, color: Colors.white, size: 16),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text("Mix Distribution", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2937))),
+                            ]),
+                            const SizedBox(height: 16),
+                            // Visual bar
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Row(children: [
+                                Expanded(
+                                  flex: mcqPct,
+                                  child: Container(
+                                    height: 28,
+                                    color: const Color(0xFF4F46E5),
+                                    alignment: Alignment.center,
+                                    child: Text("MCQ $mcqPct%", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: essayPct,
+                                  child: Container(
+                                    height: 28,
+                                    color: const Color(0xFF7C3AED),
+                                    alignment: Alignment.center,
+                                    child: Text("Essay $essayPct%", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ]),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
+                            const SizedBox(height: 12),
+                            // Slider
+                            SliderTheme(
+                              data: SliderTheme.of(ctx).copyWith(
+                                activeTrackColor: const Color(0xFF4F46E5),
+                                inactiveTrackColor: const Color(0xFF7C3AED),
+                                thumbColor: Colors.white,
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                                overlayColor: const Color(0x224F46E5),
+                                trackHeight: 4,
+                              ),
+                              child: Slider(
+                                value: mcqPercentage,
+                                min: 10,
+                                max: 90,
+                                divisions: 8,
+                                onChanged: (val) => setState(() => mcqPercentage = val),
+                              ),
+                            ),
+                            // Stats row
+                            Row(children: [
+                              Expanded(child: _buildMixStatTile(Icons.list_alt, "MCQ", mcqCount, mcqPct, const Color(0xFF4F46E5), const Color(0xFFEEF2FF))),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildMixStatTile(Icons.article_outlined, "Essay", essayCount, essayPct, const Color(0xFF7C3AED), const Color(0xFFF5F3FF))),
+                            ]),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                   const SizedBox(height: 24),
 
@@ -618,7 +676,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
           const SizedBox(height: 10),
           Text(
             selectedTypeMode == 'Mix'
-                ? "~$total questions · MCQ & Essay randomly distributed"
+                ? "~$total Qs · MCQ ${mcqPercentage.round()}% / Essay ${(100 - mcqPercentage).round()}%"
                 : selectedDifficultyMode == 'All'
                     ? "~$total questions · ${types.first} across Easy, Medium & Hard"
                     : "$total × ${types.first} · ${difficulties.first}",
@@ -726,7 +784,18 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
 
   Widget _buildQuestionCard(Map<String, dynamic> q, int number) {
     final List<dynamic>? options = q['options'];
-    final String correctAnswer = q['correct_answer'] ?? '';
+    // Resolve correct_answer: AI may return full text, int index, or letter (A/B/C/D)
+    String correctAnswer = (q['correct_answer'] ?? '').toString();
+    if (options != null && options.isNotEmpty) {
+      final raw = q['correct_answer'];
+      if (raw is int && raw >= 0 && raw < options.length) {
+        correctAnswer = options[raw].toString();
+      } else if (correctAnswer.length == 1) {
+        final letter = correctAnswer.toUpperCase();
+        final idx = letter.codeUnitAt(0) - 'A'.codeUnitAt(0);
+        if (idx >= 0 && idx < options.length) correctAnswer = options[idx].toString();
+      }
+    }
     final String explanation = q['explanation'] ?? '';
     final String questionType = q['question_type'] ?? 'MCQ';
     final String questionDifficulty = q['difficulty'] ?? 'Medium';
@@ -897,6 +966,28 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
       ),
     );
   }
+
+  Widget _buildMixStatTile(IconData icon, String label, int count, int pct, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: Colors.white, size: 14),
+        ),
+        const SizedBox(width: 10),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+          Text("$count questions · $pct%", style: TextStyle(color: color.withOpacity(0.7), fontSize: 11)),
+        ]),
+      ]),
+    );
+  }
+
+  // legacy alias kept for safety
+  Widget _buildMixBadge(String type, String pct, String count, Color color) => const SizedBox();
 
   Widget _buildBadge(String label, Color bg, Color textColor) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
