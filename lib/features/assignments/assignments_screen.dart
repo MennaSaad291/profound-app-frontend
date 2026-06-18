@@ -53,36 +53,43 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => GradingReviewDialog(
-        // Add .cast<String, dynamic>() here
         submission: sub.cast<String, dynamic>(),
-        onFinalize: (finalGrade) {
-          _handleUpdateGrade(sub['id'], finalGrade);
-          Navigator.pop(context);
+        onFinalize: (finalGrade) async {
+          // await the HTTP call so fetchData runs AFTER the server confirms
+          await _handleUpdateGrade(sub['id'], finalGrade);
+          if (context.mounted) Navigator.pop(context);
         },
       ),
     );
   }
   Future<void> _handleUpdateGrade(int submissionId, double finalGrade) async {
     try {
-      // Replace with your actual update endpoint
       final response = await http.put(
         Uri.parse('http://127.0.0.1:8000/update-submission-grade/$submissionId'),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"final_grade": finalGrade}),
+        body: json.encode({"final_grade": finalGrade.toInt()}),
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Grade updated successfully!")),
-        );
-        fetchData(); // Refresh the list to show the new grade in the UI
+        // Refresh AFTER the server has confirmed the write
+        await fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Grade updated successfully!"),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
       } else {
-        throw Exception("Failed to update grade");
+        throw Exception("Server returned ${response.statusCode}: ${response.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating grade: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error updating grade: $e")),
+        );
+      }
     }
   }
   Future<void> fetchData() async {

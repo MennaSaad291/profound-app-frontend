@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class GradingReviewDialog extends StatefulWidget {
   final Map<String, dynamic> submission;
-  final Function(double) onFinalize;
+  final Future<void> Function(double) onFinalize;
 
   const GradingReviewDialog({
     super.key,
@@ -16,6 +16,7 @@ class GradingReviewDialog extends StatefulWidget {
 
 class _GradingReviewDialogState extends State<GradingReviewDialog> {
   late TextEditingController _gradeController;
+  bool _isSaving = false; // tracks finalize-in-progress
 
   // ── Theme colours ─────────────────────────────────────────────────────
   static const Color _purple      = Color(0xFF9333EA);
@@ -543,7 +544,7 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
         children: [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _isSaving ? null : () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
               child: const Text('Cancel'),
             ),
@@ -558,11 +559,28 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
               ),
-              onPressed: () {
-                final val = double.tryParse(_gradeController.text);
-                if (val != null) widget.onFinalize(val);
-              },
-              child: const Text('Finalize Grade', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      final val = double.tryParse(_gradeController.text);
+                      if (val == null) return;
+                      setState(() => _isSaving = true);
+                      // onFinalize is awaited — dialog stays open until
+                      // fetchData() completes, then the parent closes it
+                      await widget.onFinalize(val);
+                      if (mounted) setState(() => _isSaving = false);
+                    },
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Finalize Grade',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
