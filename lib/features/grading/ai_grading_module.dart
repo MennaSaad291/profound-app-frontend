@@ -139,7 +139,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
             'essay_content':    '',
             'plagiarism_score': 0,
           },
-          onFinalize: (grade) => Navigator.pop(context),
+          onFinalize: (grade) async => Navigator.pop(context),
         ),
       ),
     );
