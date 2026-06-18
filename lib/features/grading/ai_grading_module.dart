@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
+import '../grading/grading_review_dialog.dart';
+import '../../core/services/grading_settings_service.dart';
 
 class AiGradingModule extends StatefulWidget {
   const AiGradingModule({super.key});
@@ -16,6 +18,8 @@ class _AiGradingModuleState extends State<AiGradingModule> {
   String selectedMode = 'MODEL';
   bool isAnalyzing = false;
   String currentFileName = "Manual Entry";
+  // Tone: starts from the saved setting, can be overridden per-session
+  String _sessionTone = GradingSettingsService.instance.feedbackTone;
   final TextEditingController _refController = TextEditingController();
   final TextEditingController _studentController = TextEditingController();
   List<Map<String, dynamic>> resultsList = [];
@@ -86,6 +90,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
           "student_text": _studentController.text,
           "mode": selectedMode,
           "reference_content": _refController.text,
+          "feedback_tone": _sessionTone,
         }),
       );
 
@@ -93,10 +98,15 @@ class _AiGradingModuleState extends State<AiGradingModule> {
         final data = json.decode(response.body);
         setState(() {
           resultsList.insert(0, {
-            "title": currentFileName,
-            "grade": data['score_out_of_100'] ?? 0,
-            "summary": data['summary'] ?? "Analysis complete.",
-            "time": "Just now"
+            "title":             currentFileName,
+            "grade":             data['score_out_of_100'] ?? 0,
+            "summary":           data['summary'] ?? "Analysis complete.",
+            "strengths":         data['strengths'] ?? [],
+            "areas_for_improvement": data['areas_for_improvement'] ?? [],
+            "error_categories":  data['error_categories'] ?? {},
+            "recommendation":    data['recommendation'] ?? "",
+            "feedback_tone":     data['feedback_tone'] ?? "formal",
+            "time":              "Just now",
           });
         });
       }
@@ -111,44 +121,26 @@ class _AiGradingModuleState extends State<AiGradingModule> {
   void _showGradingReview(Map<String, dynamic> res) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            Icon(Icons.auto_awesome, color: primaryPurple),
-            const SizedBox(width: 10),
-            Text("Grading Review", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-          ],
+        child: GradingReviewDialog(
+          submission: {
+            'student_name': res['title'],
+            'ai_grade':     res['grade'],
+            'grade_report': {
+              'summary':               res['summary'],
+              'strengths':             res['strengths'],
+              'areas_for_improvement': res['areas_for_improvement'],
+              'error_categories':      res['error_categories'],
+              'recommendation':        res['recommendation'],
+              'feedback_tone':         res['feedback_tone'],
+            },
+            'essay_content':    '',
+            'plagiarism_score': 0,
+          },
+          onFinalize: (grade) => Navigator.pop(context),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("STUDENT", style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-              Text(res['title'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Divider(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("AI SCORE", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text("${res['grade']}%", style: TextStyle(color: primaryPurple, fontWeight: FontWeight.w900, fontSize: 22)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text("DETAILED FEEDBACK", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
-                child: Text(res['summary'], style: GoogleFonts.inter(height: 1.5, fontSize: 14)),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Close", style: TextStyle(color: primaryPurple, fontWeight: FontWeight.bold))),
-        ],
       ),
     );
   }
@@ -189,7 +181,9 @@ class _AiGradingModuleState extends State<AiGradingModule> {
                           }),
                           const SizedBox(height: 12),
                           _buildUploadArea("Browse Student File", () => _pickFile(_studentController)),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
+                          _buildToneSelector(),
+                          const SizedBox(height: 12),
                           _buildGradientButton(),
                         ],
                       ),
@@ -339,6 +333,68 @@ class _AiGradingModuleState extends State<AiGradingModule> {
         decoration: BoxDecoration(color: isSelected ? primaryPurple : Colors.white, borderRadius: BorderRadius.circular(30), border: Border.all(color: isSelected ? primaryPurple : Colors.grey.shade200)),
         child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade600, fontWeight: FontWeight.w700, fontSize: 12)),
       ),
+    );
+  }
+
+  Widget _buildToneSelector() {
+    const tones = [
+      {'value': 'formal',      'label': 'Formal',      'icon': Icons.school,                    'color': Color(0xFF3B82F6)},
+      {'value': 'encouraging', 'label': 'Encouraging',  'icon': Icons.sentiment_satisfied_alt,   'color': Color(0xFF10B981)},
+      {'value': 'strict',      'label': 'Strict',       'icon': Icons.gavel,                     'color': Color(0xFFEF4444)},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.tune, size: 14, color: Colors.grey.shade500),
+            const SizedBox(width: 6),
+            Text('Feedback Tone',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600, letterSpacing: 0.5)),
+            const SizedBox(width: 6),
+            Text('(from Settings)', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: tones.map((t) {
+            final val     = t['value'] as String;
+            final selected = _sessionTone == val;
+            final color   = t['color'] as Color;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _sessionTone = val),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? color.withOpacity(0.12) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? color : Colors.grey.shade200,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(t['icon'] as IconData, size: 18, color: selected ? color : Colors.grey.shade400),
+                      const SizedBox(height: 4),
+                      Text(t['label'] as String,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                              color: selected ? color : Colors.grey.shade500)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
