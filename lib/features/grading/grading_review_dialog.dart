@@ -28,8 +28,14 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill with professor's previous override if it exists,
+    // otherwise start from the AI grade.
+    final int? manualGrade =
+        (widget.submission['manual_grade'] as num?)?.toInt();
+    final int? aiGrade =
+        (widget.submission['ai_grade'] as num?)?.toInt();
     _gradeController = TextEditingController(
-      text: widget.submission['ai_grade']?.toString() ?? '',
+      text: (manualGrade ?? aiGrade)?.toString() ?? '',
     );
   }
 
@@ -237,25 +243,82 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
   }
 
   Widget _buildScoreRow(int score, dynamic plagiarism) {
-    return Row(
+    // score is ai_grade. Check if professor has overridden it.
+    final int? manualGrade =
+        (widget.submission['manual_grade'] as num?)?.toInt();
+    final bool overridden = manualGrade != null;
+    final int displayScore = overridden ? manualGrade : score;
+
+    return Column(
       children: [
-        Expanded(
-          child: _buildStatCard(
-            label: 'AI Score',
-            value: '$score%',
-            color: _scoreColor(score),
-            icon: Icons.stars_rounded,
-          ),
+        Row(
+          children: [
+            // AI Score — always shown
+            Expanded(
+              child: _buildStatCard(
+                label: 'AI Score',
+                value: '$score%',
+                color: _scoreColor(score),
+                icon: Icons.auto_awesome,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Plagiarism score
+            Expanded(
+              child: _buildStatCard(
+                label: 'Plagiarism',
+                value: '$plagiarism%',
+                color: (plagiarism as num) > 10 ? _red : _green,
+                icon: Icons.shield_outlined,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            label: 'Plagiarism',
-            value: '$plagiarism%',
-            color: (plagiarism as num) > 10 ? _red : _green,
-            icon: Icons.shield_outlined,
+        // Only show the final grade row when the professor has overridden
+        if (overridden) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.edit_note, color: Colors.orange, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Professor Override',
+                        style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        'AI: $score%  →  Final: $manualGrade%',
+                        style: const TextStyle(
+                            color: Colors.orange, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '$manualGrade%',
+                  style: const TextStyle(
+                      color: Colors.orange,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

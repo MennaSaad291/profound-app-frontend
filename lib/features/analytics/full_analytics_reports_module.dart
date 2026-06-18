@@ -715,104 +715,164 @@ class _FullAnalyticsReportsModuleState
   }
 
   Widget _buildErrorCategoryCard(Map<String, dynamic> data) {
-    final patterns = List<Map<String, dynamic>>.from(data['patterns'] ?? []);
+    final notes = List<Map<String, dynamic>>.from(data['notes'] ?? []);
+    final affectedStudents = data['affected_students'] ?? 0;
+
+    // Pick a colour per category
+    final Map<String, Color> categoryColors = {
+      'Conceptual':   const Color(0xFF8B5CF6),
+      'Structural':   const Color(0xFF0EA5E9),
+      'Language':     const Color(0xFFF97316),
+      'Completeness': const Color(0xFF10B981),
+    };
+    final Color accent =
+        categoryColors[data['category']] ?? const Color(0xFF6B7280);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
+        border: Border.all(color: accent.withOpacity(0.3), width: 2),
         borderRadius: BorderRadius.circular(10),
+        color: accent.withOpacity(0.03),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                data['category'],
-                style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+          // ── Header ──────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.08),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
               ),
-              Row(
-                children: [
-                  Text(
-                    "${data['total_errors']} errors",
-                    style: const TextStyle(
-                      color: Color(0xFF4B5563),
-                      fontSize: 11,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // category name + student count
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data['category'],
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                    const SizedBox(height: 2),
+                    Text(
+                      "$affectedStudents student(s) affected",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: accent.withOpacity(0.75),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      "${data['percentage']}%",
+                  ],
+                ),
+                // total count + percentage
+                Row(
+                  children: [
+                    Text(
+                      "${data['total_errors']} errors",
                       style: const TextStyle(
-                        color: Color(0xFFB91C1C),
+                        color: Color(0xFF4B5563),
                         fontSize: 11,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        "${data['percentage']}%",
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
 
-          const SizedBox(height: 12),
-
-          ...patterns.map((pattern) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(6),
+          // ── Notes list ───────────────────────────────────────────────
+          if (notes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                "No detailed notes available.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: notes.map((note) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: accent.withOpacity(0.15),
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // assignment badge
+                        if ((note['assignment'] ?? '').toString().isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              note['assignment'].toString(),
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: accent,
+                              ),
+                            ),
+                          ),
+                        // AI description
                         Text(
-                          pattern['error_type'],
+                          note['description'] ?? '',
                           style: const TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF111827),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Affected: ${pattern['affected_students']} students",
-                          style: const TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 10,
+                            color: Color(0xFF374151),
+                            height: 1.4,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Text(
-                    "${pattern['occurrences']}x",
-                    style: const TextStyle(
-                      color: Color(0xFF4B5563),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
-            );
-          }).toList(),
+            ),
         ],
       ),
     );
