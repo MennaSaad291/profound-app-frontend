@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import"../grading/grading_review_dialog.dart";
+import '../../core/services/grading_settings_service.dart';
 
 class AssignmentsScreen extends StatefulWidget {
   final int courseId;
@@ -52,36 +53,43 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => GradingReviewDialog(
-        // Add .cast<String, dynamic>() here
         submission: sub.cast<String, dynamic>(),
-        onFinalize: (finalGrade) {
-          _handleUpdateGrade(sub['id'], finalGrade);
-          Navigator.pop(context);
+        onFinalize: (finalGrade) async {
+          // await the HTTP call so fetchData runs AFTER the server confirms
+          await _handleUpdateGrade(sub['id'], finalGrade);
+          if (context.mounted) Navigator.pop(context);
         },
       ),
     );
   }
   Future<void> _handleUpdateGrade(int submissionId, double finalGrade) async {
     try {
-      // Replace with your actual update endpoint
       final response = await http.put(
         Uri.parse('http://127.0.0.1:8000/update-submission-grade/$submissionId'),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"final_grade": finalGrade}),
+        body: json.encode({"final_grade": finalGrade.toInt()}),
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Grade updated successfully!")),
-        );
-        fetchData(); // Refresh the list to show the new grade in the UI
+        // Refresh AFTER the server has confirmed the write
+        await fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Grade updated successfully!"),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
       } else {
-        throw Exception("Failed to update grade");
+        throw Exception("Server returned ${response.statusCode}: ${response.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating grade: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error updating grade: $e")),
+        );
+      }
     }
   }
   Future<void> fetchData() async {
@@ -125,6 +133,11 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     try {
       var request = http.MultipartRequest(
           'POST', Uri.parse('http://127.0.0.1:8000/grade-submission/$assignmentId'));
+
+      // Fix 1: send the professor's saved feedback tone so the backend
+      // uses it instead of always defaulting to "formal".
+      request.fields['feedback_tone'] =
+          GradingSettingsService.instance.feedbackTone;
 
       request.files.add(http.MultipartFile.fromBytes(
           'file',
@@ -578,6 +591,11 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
 
   Widget _studentRow(Map sub) {
+    // final_grade = manual_grade if professor overrode, else ai_grade
+    final int? finalGrade = sub['final_grade'];
+    final int? aiGrade    = sub['ai_grade'];
+    final bool overridden = sub['manual_grade'] != null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -593,19 +611,44 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(sub['student_name'], style: const TextStyle(fontWeight: FontWeight.w500)),
-                const Text("Status: graded", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(sub['student_name'],
+                    style: const TextStyle(fontWeight: FontWeight.w500)),
+                // Show original AI score underneath when professor overrode it
+                if (overridden)
+                  Text(
+                    "AI: $aiGrade%  →  Final: $finalGrade%",
+                    style: const TextStyle(fontSize: 11, color: Colors.orange),
+                  )
+                else
+                  const Text("Status: graded",
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
-          Text("${sub['ai_grade']}%",
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Color(0xFF9333EA), fontSize: 16)),
-          const SizedBox(width: 8),
+          // Grade badge — orange if professor-adjusted, purple if AI only
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: overridden
+                  ? Colors.orange.withOpacity(0.12)
+                  : const Color(0xFF9333EA).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              "$finalGrade%",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: overridden ? Colors.orange : const Color(0xFF9333EA),
+                fontSize: 16,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
             onPressed: () => _showReviewDialog(sub),
-          ),        ],
+          ),
+        ],
       ),
     );
   }

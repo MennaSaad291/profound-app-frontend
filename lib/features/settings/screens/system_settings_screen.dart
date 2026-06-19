@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/grading_settings_service.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   final int userId;
@@ -55,6 +56,11 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   @override
   void initState() {
     super.initState();
+    // Load saved grading settings
+    _feedbackTone = GradingSettingsService.apiValueToLabel(
+        GradingSettingsService.instance.feedbackTone);
+    _gradingSensitivity = GradingSettingsService.instance.gradingSensitivity;
+    _detailedFeedback   = GradingSettingsService.instance.detailedFeedback;
     _fetchProfile();
   }
 
@@ -697,6 +703,11 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
               const SizedBox(height: 10),
               _buildPrimaryButton('Save Configuration', () {
+                // Persist to shared service so grading screens can read it
+                GradingSettingsService.instance.feedbackTone =
+                    GradingSettingsService.labelToApiValue(_feedbackTone);
+                GradingSettingsService.instance.gradingSensitivity = _gradingSensitivity;
+                GradingSettingsService.instance.detailedFeedback = _detailedFeedback;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Configuration saved!'), backgroundColor: Colors.green),
                 );
