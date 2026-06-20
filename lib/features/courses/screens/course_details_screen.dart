@@ -345,7 +345,6 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
       ),
       child: Row(
         children: [
-          // Day badge
           Container(
             width: 72,
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -359,7 +358,6 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
             ]),
           ),
           const SizedBox(width: 14),
-          // Info
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -381,7 +379,6 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
               ]),
             ),
           ),
-          // Actions
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

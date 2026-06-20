@@ -14,22 +14,18 @@ class AiGradingModule extends StatefulWidget {
 }
 
 class _AiGradingModuleState extends State<AiGradingModule> {
-  // Logic & State
   String selectedMode = 'MODEL';
   bool isAnalyzing = false;
   String currentFileName = "Manual Entry";
-  // Tone: starts from the saved setting, can be overridden per-session
   String _sessionTone = GradingSettingsService.instance.feedbackTone;
   final TextEditingController _refController = TextEditingController();
   final TextEditingController _studentController = TextEditingController();
   List<Map<String, dynamic>> resultsList = [];
 
-  // Theme Colors
   final Color primaryPurple = const Color(0xFF9333EA);
   final List<Color> actionGradient = [const Color(0xFF9333EA), const Color(0xFF7E22CE)];
   final List<Color> bgGradient = [const Color(0xFFF5F3FF), Colors.white, const Color(0xFFFFFBEB)];
 
-  // --- FILE EXTRACTION LOGIC ---
   Future<void> _pickFile(TextEditingController controller) async {
     FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -40,7 +36,6 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     if (result != null) {
       PlatformFile file = result.files.first;
       setState(() {
-        // Remove extension for the student name
         currentFileName = file.name.split('.').first;
         controller.text = "Extracting text from ${file.name}...";
       });
@@ -71,7 +66,6 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     }
   }
 
-  // --- GRADING LOGIC ---
   Future<void> _handleGrading() async {
     if (_refController.text.isEmpty || _studentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +111,6 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     }
   }
 
-  // --- REVIEW DIALOG ---
   void _showGradingReview(Map<String, dynamic> res) {
     showDialog(
       context: context,
@@ -147,73 +140,48 @@ class _AiGradingModuleState extends State<AiGradingModule> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: bgGradient)),
+    return Container(
+      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: bgGradient)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAppBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader("1. Reference & Rubric"),
-                    _buildInputCard(
-                      child: Column(
-                        children: [
-                          Row(children: [_modeChip("Model Answer", 'MODEL'), const SizedBox(width: 10), _modeChip("Rubric", 'RUBRIC')]),
-                          const SizedBox(height: 15),
-                          _buildTextField(_refController, "Paste reference here..."),
-                          const SizedBox(height: 12),
-                          _buildUploadArea("Upload Reference", () => _pickFile(_refController)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-                    _buildSectionHeader("2. Student Submission"),
-                    _buildInputCard(
-                      child: Column(
-                        children: [
-                          _buildTextField(_studentController, "Paste student work...", onChanged: (val) {
-                            if (val.isNotEmpty && currentFileName != "Manual Entry") setState(() => currentFileName = "Manual Entry");
-                          }),
-                          const SizedBox(height: 12),
-                          _buildUploadArea("Browse Student File", () => _pickFile(_studentController)),
-                          const SizedBox(height: 16),
-                          _buildToneSelector(),
-                          const SizedBox(height: 12),
-                          _buildGradientButton(),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 35),
-                    Text("Grading Results", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 15),
-                    if (resultsList.isEmpty) _buildEmptyState() else ...resultsList.map((res) => _buildResultTile(res)).toList(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+            const SizedBox(height: 16),
+            _buildSectionHeader("1. Reference & Rubric"),
+            _buildInputCard(
+              child: Column(
+                children: [
+                  Row(children: [_modeChip("Model Answer", 'MODEL'), const SizedBox(width: 10), _modeChip("Rubric", 'RUBRIC')]),
+                  const SizedBox(height: 15),
+                  _buildTextField(_refController, "Paste reference here..."),
+                  const SizedBox(height: 12),
+                  _buildUploadArea("Upload Reference", () => _pickFile(_refController)),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            IconButton(icon: const Icon(Icons.arrow_back_ios_new, size: 20), onPressed: () => Navigator.pop(context)),
-            const Spacer(),
-            Text("AI Grading System", style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16)),
-            const Spacer(),
-            const Icon(Icons.auto_awesome, color: Color(0xFF9333EA)),
+            const SizedBox(height: 25),
+            _buildSectionHeader("2. Student Submission"),
+            _buildInputCard(
+              child: Column(
+                children: [
+                  _buildTextField(_studentController, "Paste student work...", onChanged: (val) {
+                    if (val.isNotEmpty && currentFileName != "Manual Entry") setState(() => currentFileName = "Manual Entry");
+                  }),
+                  const SizedBox(height: 12),
+                  _buildUploadArea("Browse Student File", () => _pickFile(_studentController)),
+                  const SizedBox(height: 16),
+                  _buildToneSelector(),
+                  const SizedBox(height: 12),
+                  _buildGradientButton(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 35),
+            Text("Grading Results", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 15),
+            if (resultsList.isEmpty) _buildEmptyState() else ...resultsList.map((res) => _buildResultTile(res)).toList(),
+            const SizedBox(height: 40),
           ],
         ),
       ),

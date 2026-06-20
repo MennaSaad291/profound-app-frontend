@@ -88,10 +88,8 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
 
     final List<String> weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-    // Each slot: {day, start, end, room}
     List<Map<String, dynamic>> slots = [];
     if (isEdit) {
-      // Will be loaded from API after sheet opens
     }
 
     showModalBottomSheet(
@@ -102,7 +100,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setModal) {
 
-        // Load existing slots when editing
         Future<void> loadSlots() async {
           if (!isEdit) return;
           final res = await http.get(Uri.parse('$_base/courses/${existing!['id']}/schedule'));
@@ -160,7 +157,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Day picker
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
@@ -179,7 +175,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // Time row
                 Row(children: [
                   Expanded(child: _inlineTimePicker('Start', slot['startCon'], ctx, (val) => setModal(() => slot['start'] = val))),
                   const Padding(padding: EdgeInsets.symmetric(horizontal: 8),
@@ -187,7 +182,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                   Expanded(child: _inlineTimePicker('End', slot['endCon'], ctx, (val) => setModal(() => slot['end'] = val))),
                 ]),
                 const SizedBox(height: 8),
-                // Room
                 TextField(
                   controller: slot['room'],
                   style: const TextStyle(fontSize: 13),
@@ -206,7 +200,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
           );
         }
 
-        // Trigger load once when sheet opens for edit
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (isEdit && slots.isEmpty) loadSlots();
         });
@@ -359,14 +352,11 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                       courseId = created['id'];
                     }
 
-                    // Save slots: delete old ones if editing, then post all current slots
                     if (isEdit) {
-                      // Delete slots that were removed (have no 'id' means new, have 'id' means existing)
                       final existingSlotIds = slots
                         .where((s) => s['id'] != null)
                         .map((s) => s['id'] as int)
                         .toSet();
-                      // We'll just delete all and re-create for simplicity
                       final oldSlots = await http.get(Uri.parse('$_base/courses/$courseId/schedule'));
                       if (oldSlots.statusCode == 200) {
                         final old = jsonDecode(oldSlots.body) as List;
@@ -440,7 +430,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
         ]),
       ),
     );
-
 
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
@@ -562,7 +551,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
                               ),
                             );
                           },
-                        // This keeps your existing UI exactly as is
                         child: _buildCourseCard(course),
                       );
                     },
@@ -704,7 +692,6 @@ class _CoursesListScreenState extends State<CoursesListScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Students Sheet
 // ─────────────────────────────────────────────────────────────────
 class _StudentsSheet extends StatefulWidget {
   final Map<String, dynamic> course;
@@ -746,7 +733,7 @@ class _StudentsSheetState extends State<_StudentsSheet> {
         SizedBox(width: 12),
         Text("Uploading students, please wait..."),
       ]),
-      duration: Duration(seconds: 60),
+      duration: Duration(seconds: 120),
       backgroundColor: Color(0xFF4F46E5),
     ));
 
@@ -755,8 +742,6 @@ class _StudentsSheetState extends State<_StudentsSheet> {
       final bytes = file.bytes!;
       final url = '${widget.baseUrl}/courses/${widget.course['id']}/upload-students';
 
-      // Use dart:html FormData + XmlHttpRequest — flutter web's http.MultipartRequest
-      // does not correctly set the multipart boundary on web, causing silent failures.
       final formData = html.FormData();
       final blob = html.Blob([bytes]);
       formData.appendBlob('file', blob, file.name);
@@ -764,7 +749,6 @@ class _StudentsSheetState extends State<_StudentsSheet> {
       final xhr = html.HttpRequest();
       xhr.open('POST', url);
 
-      // Use a Completer to await the XHR response
       final completer = Completer<Map<String, dynamic>>();
       xhr.onLoad.listen((_) {
         completer.complete({
@@ -778,7 +762,7 @@ class _StudentsSheetState extends State<_StudentsSheet> {
       xhr.onTimeout.listen((_) {
         completer.completeError('TimeoutException');
       });
-      xhr.timeout = 60000; // 60 seconds
+      xhr.timeout = 120000; // 120 seconds
       xhr.send(formData);
 
       final response = await completer.future;

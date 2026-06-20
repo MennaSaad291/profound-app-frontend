@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:html' as html;
 import 'package:file_picker/file_picker.dart';
 
 class ProfessorProfileScreen extends StatefulWidget {
@@ -57,8 +58,6 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
     }
   }
 
-  // --- INTERACTION SHEETS ---
-
   void _showAddInterestSheet() {
     final interestCon = TextEditingController();
     showModalBottomSheet(
@@ -88,39 +87,122 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
     );
   }
 
-  void _showAddProjectSheet() {
-    final titleCon = TextEditingController();
-    final teamCon = TextEditingController();
+  void _showGradProjectSheet({Map<String, dynamic>? existing}) {
+    final titleC  = TextEditingController(text: existing?['title'] ?? '');
+    final teamC   = TextEditingController(text: existing?['team'] ?? '');
+    final yearC   = TextEditingController(text: existing?['academic_year'] ?? '2024-2025');
+    final deptC   = TextEditingController(text: existing?['department'] ?? '');
+    final isEdit  = existing != null;
+    PlatformFile? pickedFile;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Add Graduation Project", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-            TextField(controller: titleCon, decoration: const InputDecoration(labelText: "Project Title")),
-            TextField(controller: teamCon, decoration: const InputDecoration(labelText: "Team")),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA), minimumSize: const Size(double.infinity, 50)),
-              onPressed: () => _submitData('/projects', {
-                "user_id": profileData!['id'],
-                "title": titleCon.text,
-                "team": teamCon.text,
-                "year": "2024-2025",
-                "status": "ongoing",
-              }),
-              child: const Text("Save Project", style: TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(height: 14),
-          ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 24, right: 24, top: 24),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(isEdit ? 'Edit Graduation Project' : 'Add Graduation Project',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
+                if (isEdit) IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () async {
+                    await http.delete(Uri.parse('http://localhost:8000/graduation-projects/${existing['id']}'));
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    _fetchProfile(profileData!['id']);
+                  },
+                ),
+              ]),
+              const SizedBox(height: 12),
+              _inputField(titleC, 'Project Title'),
+              const SizedBox(height: 8),
+              _inputField(teamC, 'Team Members (comma separated)'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _inputField(yearC, 'Academic Year (e.g. 2024-2025)')),
+                const SizedBox(width: 10),
+                Expanded(child: _inputField(deptC, 'Department')),
+              ]),
+              const SizedBox(height: 12),
+              // PDF upload
+              GestureDetector(
+                onTap: () async {
+                  final result = await FilePicker.pickFiles(
+                      type: FileType.custom, allowedExtensions: ['pdf'], withData: true);
+                  if (result != null) setS(() => pickedFile = result.files.first);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF9333EA).withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(10),
+                    color: const Color(0xFFFAF5FF),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.picture_as_pdf, color: Color(0xFF9333EA), size: 20),
+                    const SizedBox(width: 8),
+                    Flexible(child: Text(
+                      pickedFile != null
+                          ? pickedFile!.name
+                          : existing?['has_document'] == true
+                              ? 'Document uploaded (tap to replace)'
+                              : 'Upload Project PDF (optional)',
+                      style: GoogleFonts.inter(color: const Color(0xFF9333EA), fontSize: 13, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    )),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9333EA),
+                    minimumSize: const Size(double.infinity, 50)),
+                onPressed: () async {
+                  final request = http.MultipartRequest(
+                    isEdit ? 'PUT' : 'POST',
+                    Uri.parse(isEdit
+                        ? 'http://localhost:8000/graduation-projects/${existing['id']}'
+                        : 'http://localhost:8000/graduation-projects'),
+                  );
+                  if (!isEdit) request.fields['user_id'] = profileData!['id'].toString();
+                  request.fields['title']         = titleC.text.trim();
+                  request.fields['team']          = teamC.text.trim();
+                  request.fields['academic_year'] = yearC.text.trim();
+                  request.fields['department']    = deptC.text.trim();
+                  if (pickedFile != null) {
+                    request.files.add(http.MultipartFile.fromBytes(
+                        'document', pickedFile!.bytes!, filename: pickedFile!.name));
+                  }
+                  await request.send();
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _fetchProfile(profileData!['id']);
+                },
+                child: Text(isEdit ? 'Save Changes' : 'Save Project',
+                    style: const TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 16),
+            ]),
+          ),
         ),
       ),
     );
   }
+
+  TextField _inputField(TextEditingController c, String label) => TextField(
+    controller: c,
+    decoration: InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    ),
+  );
 
   void _showAddPubSheet() {
     final tCon = TextEditingController();
@@ -225,7 +307,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                     subtitle: "${(profileData!['projects'] as List).length} projects",
                     items: profileData!['projects'] ?? [],
                     tag: 'projects',
-                    onAdd: _showAddProjectSheet,
+                    onAdd: () => _showGradProjectSheet(),
                   ),
                   const SizedBox(height: 12),
                   _buildResearchInterests(),
@@ -300,7 +382,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 2.8, 
+          childAspectRatio: 3.8,
           children: [
             _metricTile("Citations", "${metrics['citations'] ?? 0}", const Color(0xFFF0FDF4), const Color(0xFF166534), Icons.chat_bubble_outline_rounded), // FIXED: Bubble icon
             _metricTile("Students", "${metrics['students'] ?? 0}", const Color(0xFFEFF6FF), const Color(0xFF1E40AF), Icons.people_alt_rounded),
@@ -386,12 +468,97 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
   }
 
   Widget _buildProjectItem(Map<String, dynamic> item) {
+    final team = (item['team']?.toString() ?? '')
+        .split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), padding: const EdgeInsets.all(16), decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(item['title'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(10)), child: Text(item['status']?.toLowerCase() ?? "ongoing", style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 9, fontWeight: FontWeight.bold)))]),
-        const SizedBox(height: 4), Text("Year: ${item['year'] ?? "2024-2025"}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 8), Wrap(spacing: 6, runSpacing: 6, children: (item['team']?.toString().split(',') ?? ["Student A", "Student B"]).map<Widget>((name) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFAF5FF), borderRadius: BorderRadius.circular(4)), child: Text(name.trim(), style: const TextStyle(color: Color(0xFF7E22CE), fontSize: 10, fontWeight: FontWeight.w500)))).toList()),
+        Row(children: [
+          Expanded(child: Text(item['title'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9333EA)),
+            onPressed: () => _showGradProjectSheet(existing: item),
+            padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFFD97706)),
+          const SizedBox(width: 4),
+          Text(item['academic_year'] ?? item['year'] ?? '',
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          if ((item['department']?.toString() ?? '').isNotEmpty) ...[
+            const SizedBox(width: 12),
+            const Icon(Icons.domain_outlined, size: 12, color: Color(0xFF9333EA)),
+            const SizedBox(width: 4),
+            Flexible(child: Text(item['department'].toString(),
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                overflow: TextOverflow.ellipsis)),
+          ],
+        ]),
+        if (team.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 4, children: team.map((name) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFFAF5FF), borderRadius: BorderRadius.circular(4)),
+            child: Text(name.trim(), style: const TextStyle(color: Color(0xFF7E22CE), fontSize: 10, fontWeight: FontWeight.w500)),
+          )).toList()),
+        ],
+        if (item['has_document'] == true) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            // ── View in browser ──────────────────────────────────────
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  final url = 'http://localhost:8000/graduation-projects/${item['id']}/download';
+                  html.window.open(url, '_blank');
+                },
+                icon: const Icon(Icons.visibility_outlined, size: 15, color: Color(0xFF1D4ED8)),
+                label: const Text('View PDF', style: TextStyle(fontSize: 11, color: Color(0xFF1D4ED8))),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF1D4ED8)),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // ── Force download ───────────────────────────────────────
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final res = await http.get(
+                      Uri.parse('http://localhost:8000/graduation-projects/${item['id']}/download'),
+                    );
+                    if (res.statusCode == 200) {
+                      final blob = html.Blob([res.bodyBytes], 'application/pdf');
+                      final url = html.Url.createObjectUrlFromBlob(blob);
+                      html.AnchorElement(href: url)
+                        ..setAttribute('download', '${item['title'] ?? 'project'}.pdf')
+                        ..click();
+                      html.Url.revokeObjectUrl(url);
+                    }
+                  } catch (_) {}
+                },
+                icon: const Icon(Icons.download_rounded, size: 15, color: Colors.white),
+                label: const Text('Download', style: TextStyle(fontSize: 11, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9333EA),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ]),
+        ],
       ]),
     );
   }

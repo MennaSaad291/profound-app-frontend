@@ -43,7 +43,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     return [selectedDifficultyMode];
   }
 
-  // ✅ Randomly distribute questions across combinations for Mix mode
   Map<String, int> _distributeQuestions(
       List<String> types, List<String> difficulties, int total) {
     final Map<String, int> distribution = {};
@@ -60,18 +59,15 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
       return distribution;
     }
 
-    // ✅ Random distribution — not even split
     final rand = Random();
     int remaining = total;
 
     for (int i = 0; i < combos.length - 1; i++) {
-      // Give each combo at least 1, randomly assign up to remaining-1
       final maxForThis = remaining - (combos.length - 1 - i);
       final assigned = maxForThis <= 1 ? 1 : (rand.nextInt(maxForThis - 1) + 1);
       distribution[combos[i]] = assigned;
       remaining -= assigned;
     }
-    // Last combo gets whatever is left
     distribution[combos.last] = remaining;
 
     return distribution;
@@ -82,13 +78,11 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     try {
       final url = 'http://127.0.0.1:8000/exams/export-word/$examId';
 
-      // Fetch the file bytes via http
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
         throw Exception('Server returned ${response.statusCode}');
       }
 
-      // Use the browser's download mechanism (works on Flutter Web)
       final blob = html.Blob([response.bodyBytes],
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       final blobUrl = html.Url.createObjectUrlFromBlob(blob);
@@ -139,8 +133,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
       List<dynamic> allQuestions = [];
       String? examId;
 
-      // Build a list of (type, difficulty, count) batches
-      // For Mix: use professor-defined percentage; for single type: all questions
       final Map<String, int> typeMap = selectedTypeMode == 'Mix'
           ? _mixDistribution(selectedQuestions)
           : {selectedTypeMode: selectedQuestions};
@@ -150,7 +142,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
         final int typeTotal = typeEntry.value;
         if (typeTotal == 0) continue;
 
-        // Split across difficulties
         final Map<String, int> diffMap = {};
         if (difficulties.length == 1) {
           diffMap[difficulties[0]] = typeTotal;
@@ -169,7 +160,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
           int remaining = diffEntry.value;
           if (remaining == 0) continue;
 
-          // Batch into max 5 per API call to avoid truncation
           const int batchSize = 5;
           while (remaining > 0) {
             final int batchCount = remaining > batchSize ? batchSize : remaining;
@@ -197,7 +187,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
         }
       }
 
-      // Trim to exact count
       if (allQuestions.length > selectedQuestions) {
         allQuestions = allQuestions.sublist(0, selectedQuestions);
       }
@@ -303,7 +292,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Header
                             Row(children: [
                               Container(
                                 padding: const EdgeInsets.all(6),
@@ -314,7 +302,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                               const Text("Mix Distribution", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2937))),
                             ]),
                             const SizedBox(height: 16),
-                            // Visual bar
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Row(children: [
@@ -339,7 +326,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                               ]),
                             ),
                             const SizedBox(height: 12),
-                            // Slider
                             SliderTheme(
                               data: SliderTheme.of(ctx).copyWith(
                                 activeTrackColor: const Color(0xFF4F46E5),
@@ -357,7 +343,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                                 onChanged: (val) => setState(() => mcqPercentage = val),
                               ),
                             ),
-                            // Stats row
                             Row(children: [
                               Expanded(child: _buildMixStatTile(Icons.list_alt, "MCQ", mcqCount, mcqPct, const Color(0xFF4F46E5), const Color(0xFFEEF2FF))),
                               const SizedBox(width: 12),
@@ -482,12 +467,10 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ✅ Number of questions with keyboard + counter
                   _buildStepHeader("5", "Number of Questions"),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      // Counter buttons
                       IconButton(
                         onPressed: () {
                           final current =
@@ -505,7 +488,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                         iconSize: 32,
                       ),
 
-                      // ✅ Editable text field
                       Expanded(
                         child: TextField(
                           controller: _questionsController,
@@ -784,7 +766,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
 
   Widget _buildQuestionCard(Map<String, dynamic> q, int number) {
     final List<dynamic>? options = q['options'];
-    // Resolve correct_answer: AI may return full text, int index, or letter (A/B/C/D)
     String correctAnswer = (q['correct_answer'] ?? '').toString();
     if (options != null && options.isNotEmpty) {
       final raw = q['correct_answer'];
@@ -986,7 +967,6 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     );
   }
 
-  // legacy alias kept for safety
   Widget _buildMixBadge(String type, String pct, String count, Color color) => const SizedBox();
 
   Widget _buildBadge(String label, Color bg, Color textColor) => Container(

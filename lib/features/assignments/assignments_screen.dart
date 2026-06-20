@@ -55,7 +55,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       builder: (context) => GradingReviewDialog(
         submission: sub.cast<String, dynamic>(),
         onFinalize: (finalGrade) async {
-          // await the HTTP call so fetchData runs AFTER the server confirms
           await _handleUpdateGrade(sub['id'], finalGrade);
           if (context.mounted) Navigator.pop(context);
         },
@@ -71,7 +70,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       );
 
       if (response.statusCode == 200) {
-        // Refresh AFTER the server has confirmed the write
         await fetchData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -116,12 +114,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     return result?.files.first;
   }
 
-  // ---------------- GRADING LOGIC ----------------
   Future<void> _handleGradeSubmission(int assignmentId) async {
     PlatformFile? file = await pickFile();
     if (file == null) return;
 
-    // Show loading overlay
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -134,8 +130,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       var request = http.MultipartRequest(
           'POST', Uri.parse('http://127.0.0.1:8000/grade-submission/$assignmentId'));
 
-      // Fix 1: send the professor's saved feedback tone so the backend
-      // uses it instead of always defaulting to "formal".
       request.fields['feedback_tone'] =
           GradingSettingsService.instance.feedbackTone;
 
@@ -188,7 +182,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  // ---------------- CONSOLIDATED CREATE MODAL ----------------
   void _showCreateAssignmentModal() {
     final nameController = TextEditingController();
     final questionController = TextEditingController();
@@ -323,7 +316,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     );
   }
 
-  // ---------------- BACKEND LOGIC ----------------
   Future<void> _handleCreate(
       String name,
       String question,
@@ -365,8 +357,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       fetchData();
     }
   }
-
-  // ---------------- UI HELPERS ----------------
 
   Widget _uploadBox(String label, Color themeColor, VoidCallback onTap) {
     return InkWell(
@@ -482,10 +472,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             children: [
               _statCard("Assignments", "${assignments.length}", Colors.purple),
               const SizedBox(width: 10),
-              // Use the getter here
               _statCard("Submissions", "$totalSubmissions", Colors.blue),
               const SizedBox(width: 10),
-              // Use the getter here
               _statCard("Graded", "$totalGraded", const Color(0xFF10B981)),
             ],
           ),
@@ -591,7 +579,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
 
   Widget _studentRow(Map sub) {
-    // final_grade = manual_grade if professor overrode, else ai_grade
     final int? finalGrade = sub['final_grade'];
     final int? aiGrade    = sub['ai_grade'];
     final bool overridden = sub['manual_grade'] != null;
@@ -613,7 +600,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               children: [
                 Text(sub['student_name'],
                     style: const TextStyle(fontWeight: FontWeight.w500)),
-                // Show original AI score underneath when professor overrode it
                 if (overridden)
                   Text(
                     "AI: $aiGrade%  →  Final: $finalGrade%",
@@ -625,7 +611,6 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               ],
             ),
           ),
-          // Grade badge — orange if professor-adjusted, purple if AI only
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(

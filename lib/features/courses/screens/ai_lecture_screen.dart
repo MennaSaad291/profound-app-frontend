@@ -10,7 +10,6 @@ const int _kMaxSlides = 60;
 const int _kMinSlides = 3;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Widget
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AILectureScreen extends StatefulWidget {
@@ -80,7 +79,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   Color get _detailColor => _selectedTheme == 'Dark Mode Tech' ? const Color(0xFFCBD5E1) : const Color(0xFF374151);
 
   // ─────────────────────────────────────────────────────────────────
-  // API: generate
   // ─────────────────────────────────────────────────────────────────
 
   Future<void> _generateLecture() async {
@@ -121,7 +119,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
           'additional_instructions': combined,
           'theme':                   _selectedTheme,
         }),
-      ).timeout(const Duration(seconds: 180));
+      ).timeout(const Duration(seconds: 360));
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
@@ -229,7 +227,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   String _clean(String? t) => (t ?? '').replaceAll('**', '').replaceAll('*', '').trim();
 
   // ─────────────────────────────────────────────────────────────────
-  // Build
   // ─────────────────────────────────────────────────────────────────
 
   @override
@@ -273,7 +270,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          // Left panel
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             width: _showSettings ? 360 : 0,
@@ -281,9 +277,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
                 ? ClipRect(child: SizedBox(width: 360, child: _buildSettingsPanel()))
                 : null,
           ),
-          // Main area
           Expanded(child: _buildMainArea()),
-          // Thumbnail panel
           if (_presentationData != null) _buildThumbnailPanel(),
         ],
             ), 
@@ -293,9 +287,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
     );
   }
 
-
   // ─────────────────────────────────────────────────────────────────
-  // Settings panel
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildSettingsPanel() => Container(
@@ -394,7 +386,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   );
 
   // ─────────────────────────────────────────────────────────────────
-  // Main area
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildMainArea() {
@@ -420,18 +411,28 @@ class _AILectureScreenState extends State<AILectureScreen> {
     ],
   ]));
 
-  Widget _buildLoading() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    CircularProgressIndicator(color: _accent),
-    const SizedBox(height: 24),
-    Text('Generating your lecture...', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: _accent)),
-    const SizedBox(height: 8),
-    Text('Building rich content with explanations per point', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey)),
-    const SizedBox(height: 4),
-    Text('This may take 20–60 seconds depending on slide count', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)),
-  ]));
+  Widget _buildLoading() {
+    final slideCount = int.tryParse(_pageCountController.text) ?? 10;
+    final batches = (slideCount / 3).ceil();
+    final estSecs = batches * 6;
+    final estMin  = estSecs ~/ 60;
+    final estRemS = estSecs % 60;
+    final estStr  = estMin > 0 ? '~$estMin min ${estRemS}s' : '~${estSecs}s';
+
+    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      CircularProgressIndicator(color: _accent),
+      const SizedBox(height: 24),
+      Text('Generating your lecture...', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: _accent)),
+      const SizedBox(height: 10),
+      Text('Slides are generated in small batches to maximise quality', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600])),
+      const SizedBox(height: 4),
+      Text('Estimated time: $estStr for $slideCount slides', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500])),
+      const SizedBox(height: 4),
+      Text('Please keep this window open', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[400])),
+    ]));
+  }
 
   // ─────────────────────────────────────────────────────────────────
-  // Slide viewer
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildSlideViewer() {
@@ -485,7 +486,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   );
 
   // ─────────────────────────────────────────────────────────────────
-  // Slide card
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildSlideCard(Map<String, dynamic> slide, int index) {
@@ -502,7 +502,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Stack(children: [
-        // Left accent bar
         Positioned(left: 0, top: 0, bottom: 0, child: Container(
           width: 5,
           decoration: BoxDecoration(
@@ -529,7 +528,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
               ),
             ]),
 
-            // Accent underline
             Container(width: 60, height: 3, margin: const EdgeInsets.only(top: 4, bottom: 16),
                 decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2))),
 
@@ -630,9 +628,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
     );
   }
 
-
   // ─────────────────────────────────────────────────────────────────
-  // Thumbnail panel
   // ─────────────────────────────────────────────────────────────────
 
   Widget _buildThumbnailPanel() {
@@ -675,7 +671,6 @@ class _AILectureScreenState extends State<AILectureScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Helpers
   // ─────────────────────────────────────────────────────────────────
 
   Widget _lbl(String t) => Padding(

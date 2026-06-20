@@ -29,7 +29,6 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _professorName = args?['name'] ?? "Professor";
-    // Login passes 'id', support both 'id' and 'user_id'
     final rawId = args?['user_id'] ?? args?['id'];
     _userId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
     if (_userId != null && _isLoading) _fetchStats();
@@ -88,7 +87,6 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                       style: TextStyle(color: Colors.grey, fontSize: 14)),
                     const SizedBox(height: 8),
 
-                    // Refresh hint
                     if (_isLoading)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
@@ -111,7 +109,6 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     _buildSectionHeader("Current Workload"),
                     const SizedBox(height: 12),
 
-                    // Class Average
                     _buildWorkloadCard(
                       label: "Current Class Average",
                       value: classAverage > 0 ? "${classAverage.toStringAsFixed(1)}%" : "—",
@@ -132,7 +129,6 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     ),
                     const SizedBox(height: 12),
 
-                    // At-Risk Students
                     _buildWorkloadCard(
                       label: "At-Risk Students",
                       value: "$atRiskCount",
@@ -144,7 +140,6 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Pending Grading
                     _buildWorkloadCard(
                       label: "Pending Grading",
                       value: "$pendingGrading",

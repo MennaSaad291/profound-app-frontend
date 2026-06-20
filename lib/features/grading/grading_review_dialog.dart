@@ -29,8 +29,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill with professor's previous override if it exists,
-    // otherwise start from the AI grade.
     final int? manualGrade =
         (widget.submission['manual_grade'] as num?)?.toInt();
     final int? aiGrade =
@@ -107,11 +105,9 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Score row
                   _buildScoreRow(score, plagiarism),
                   const SizedBox(height: 20),
 
-                  // Summary
                   _buildSection(
                     icon: Icons.summarize_outlined,
                     label: 'Overall Assessment',
@@ -120,7 +116,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Strengths
                   if (strengths.isNotEmpty) ...[
                     _buildSection(
                       icon: Icons.check_circle_outline,
@@ -131,7 +126,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Areas for improvement
                   if (improvements.isNotEmpty) ...[
                     _buildSection(
                       icon: Icons.trending_up,
@@ -142,11 +136,9 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Error categories
                   if (errors is Map && errors.isNotEmpty)
                     _buildErrorCategories(errors),
 
-                  // Recommendation
                   if (recommendation != null) ...[
                     const SizedBox(height: 16),
                     _buildSection(
@@ -157,7 +149,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                     ),
                   ],
 
-                  // Student submission text
                   const SizedBox(height: 16),
                   _buildSection(
                     icon: Icons.description_outlined,
@@ -171,13 +162,11 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                     ),
                   ),
 
-                  // Plagiarism alert
                   if ((plagiarism as num) > 10) ...[
                     const SizedBox(height: 16),
                     _buildPlagiarismAlert(plagiarism),
                   ],
 
-                  // Grade override
                   const SizedBox(height: 20),
                   _buildSection(
                     icon: Icons.edit_note,
@@ -244,7 +233,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
   }
 
   Widget _buildScoreRow(int score, dynamic plagiarism) {
-    // score is ai_grade. Check if professor has overridden it.
     final int? manualGrade =
         (widget.submission['manual_grade'] as num?)?.toInt();
     final bool overridden = manualGrade != null;
@@ -254,7 +242,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
       children: [
         Row(
           children: [
-            // AI Score — always shown
             Expanded(
               child: _buildStatCard(
                 label: 'AI Score',
@@ -264,7 +251,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
               ),
             ),
             const SizedBox(width: 12),
-            // Plagiarism score
             Expanded(
               child: _buildStatCard(
                 label: 'Plagiarism',
@@ -275,7 +261,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
             ),
           ],
         ),
-        // Only show the final grade row when the professor has overridden
         if (overridden) ...[
           const SizedBox(height: 12),
           Container(
@@ -565,8 +550,6 @@ class _GradingReviewDialogState extends State<GradingReviewDialog> {
                       final val = double.tryParse(_gradeController.text);
                       if (val == null) return;
                       setState(() => _isSaving = true);
-                      // onFinalize is awaited — dialog stays open until
-                      // fetchData() completes, then the parent closes it
                       await widget.onFinalize(val);
                       if (mounted) setState(() => _isSaving = false);
                     },

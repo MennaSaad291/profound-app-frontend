@@ -578,36 +578,34 @@ class _FullAnalyticsReportsModuleState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF3E8FF), Colors.white, Color(0xFFFFFBEB)],
-          ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF3E8FF), Colors.white, Color(0xFFFFFBEB)],
         ),
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildUploadSection(),
-                    _buildFilterSection(),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.0),
-                      child: Text(
-                        "Advanced Analytics & Insights",
-                        style: TextStyle(fontSize: 18, color: Colors.black87),
-                      ),
+      ),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildUploadSection(),
+                  _buildFilterSection(),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: Text(
+                      "Advanced Analytics & Insights",
+                      style: TextStyle(fontSize: 18, color: Colors.black87),
                     ),
-                    _buildPredictiveChart(),
-                    _buildCorrelationChart(),
-                    _buildPieChartSection(),
+                  ),
+                  _buildPredictiveChart(),
+                  _buildCorrelationChart(),
+                  _buildPieChartSection(),
                     _buildErrorAnalysisSection(),
                     _buildBenchmarksSection(),
                     _buildReportConfigSection(),
@@ -619,8 +617,7 @@ class _FullAnalyticsReportsModuleState
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildErrorAnalysisSection() {
@@ -641,7 +638,6 @@ class _FullAnalyticsReportsModuleState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
@@ -680,7 +676,6 @@ class _FullAnalyticsReportsModuleState
             ),
           ),
 
-          // BODY
           Padding(
             padding: const EdgeInsets.all(16),
             child: errorAnalysisData.isEmpty
@@ -693,19 +688,6 @@ class _FullAnalyticsReportsModuleState
 
                       const SizedBox(height: 12),
 
-                      // SizedBox(
-                      //   width: double.infinity,
-                      //   child: ElevatedButton(
-                      //     onPressed: () {},
-                      //     style: ElevatedButton.styleFrom(
-                      //       backgroundColor: const Color(0xFFFEF2F2),
-                      //       foregroundColor: const Color(0xFFB91C1C),
-                      //       elevation: 0,
-                      //       padding: const EdgeInsets.symmetric(vertical: 14),
-                      //     ),
-                      //     child: const Text("View Detailed Error Report →"),
-                      //   ),
-                      // ),
                     ],
                   ),
           ),
@@ -718,7 +700,6 @@ class _FullAnalyticsReportsModuleState
     final notes = List<Map<String, dynamic>>.from(data['notes'] ?? []);
     final affectedStudents = data['affected_students'] ?? 0;
 
-    // Pick a colour per category
     final Map<String, Color> categoryColors = {
       'Conceptual':   const Color(0xFF8B5CF6),
       'Structural':   const Color(0xFF0EA5E9),
@@ -751,7 +732,6 @@ class _FullAnalyticsReportsModuleState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // category name + student count
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -773,7 +753,6 @@ class _FullAnalyticsReportsModuleState
                     ),
                   ],
                 ),
-                // total count + percentage
                 Row(
                   children: [
                     Text(
@@ -839,7 +818,6 @@ class _FullAnalyticsReportsModuleState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // assignment badge
                         if ((note['assignment'] ?? '').toString().isNotEmpty)
                           Container(
                             margin: const EdgeInsets.only(bottom: 4),
@@ -858,7 +836,6 @@ class _FullAnalyticsReportsModuleState
                               ),
                             ),
                           ),
-                        // AI description
                         Text(
                           note['description'] ?? '',
                           style: const TextStyle(
@@ -984,54 +961,6 @@ class _FullAnalyticsReportsModuleState
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      pinned: true,
-      elevation: 4,
-      automaticallyImplyLeading: true,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF7E22CE), Color(0xFFD97706)],
-          ),
-        ),
-      ),
-      title: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            "Profound Data & Reporting",
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-          Text(
-            "UCD-7 • US-8",
-            style: TextStyle(color: Color(0xFFE9D5FF), fontSize: 11),
-          ),
-        ],
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: GestureDetector(
-            onTap: widget.onBack,
-            child: Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/logo.jpeg',
-                  fit: BoxFit.cover,
-                  width: 36,
-                  height: 36,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

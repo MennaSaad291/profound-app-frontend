@@ -77,7 +77,6 @@ class MainLayout extends StatelessWidget {
       backgroundColor: Colors.white,
       child: Column(
         children: [
-          // 1. Fixed Header Section
           DrawerHeader(
             decoration: const BoxDecoration(color: Colors.white),
             child: Row(
@@ -101,7 +100,6 @@ class MainLayout extends StatelessWidget {
             ),
           ),
 
-          // 2. Scrollable Navigation Section (Fixes the Yellow Ribbon Error)
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -117,7 +115,6 @@ class MainLayout extends StatelessWidget {
             ),
           ),
 
-          // 3. Fixed Bottom Section (Logout stays at bottom if there is space)
           const Divider(indent: 20, endIndent: 20),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),

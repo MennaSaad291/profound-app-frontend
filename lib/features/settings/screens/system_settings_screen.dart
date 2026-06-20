@@ -20,13 +20,11 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   bool _twoFactorEnabled = false;
   bool _isChangingPassword = false;
 
-  // Notification toggles
   bool _emailNotif = true;
   bool _gradingNotif = true;
   bool _deadlineNotif = true;
   bool _atRiskNotif = true;
 
-  // AI Config
   bool _detailedFeedback = true;
   String _feedbackTone = 'Formal';
   double _gradingSensitivity = 3;
@@ -56,7 +54,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    // Load saved grading settings
     _feedbackTone = GradingSettingsService.apiValueToLabel(
         GradingSettingsService.instance.feedbackTone);
     _gradingSensitivity = GradingSettingsService.instance.gradingSensitivity;
@@ -102,7 +99,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       _showSnack('Name and department cannot be empty', isError: true);
       return;
     }
-    // Ask for password confirmation before saving
     final confirmed = await _showPasswordConfirmDialog();
     if (!confirmed) return;
   }
@@ -180,7 +176,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                           }),
                         );
                         if (response.statusCode == 200) {
-                          // Password correct — now save profile
                           Navigator.pop(context, false); // close dialog
                           await _saveProfile();
                         } else {
@@ -233,12 +228,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     }
   }
 
-
   Future<void> _changePassword() async {
     final currentPw = _currentPasswordController.text.trim();
     final newPw = _newPasswordController.text.trim();
 
-    // Basic client-side validation
     if (currentPw.isEmpty || newPw.isEmpty) {
       _showSnack('Please fill in both password fields', isError: true);
       return;
@@ -247,7 +240,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       _showSnack('New password must be at least 6 characters', isError: true);
       return;
     }
-
 
     setState(() => _isChangingPassword = true);
 
@@ -269,7 +261,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         _newPasswordController.clear();
         _showSnack('Password updated successfully!');
       } else {
-        // Show the error message from the backend (e.g. "Current password is incorrect")
         _showSnack(body['detail'] ?? 'Failed to update password', isError: true);
       }
     } catch (e) {
@@ -321,7 +312,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       ),
     );
   }
-
 
   Widget _buildMenuGrid() {
     return Container(
@@ -413,7 +403,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget _buildSecuritySection() {
     return Column(
       children: [
-        // Data Compliance
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -442,13 +431,11 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         ),
         const SizedBox(height: 8),
 
-        // Change Password Card
         _buildCard(
           icon: Icons.lock_outline,
           title: 'Change Password',
           child: Column(
             children: [
-              // Current Password
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -476,7 +463,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // New Password
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -504,7 +490,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Update Password Button
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -531,7 +516,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         ),
         const SizedBox(height: 8),
 
-        // Two Factor Auth
         _buildCard(
           icon: Icons.security,
           title: 'Two-Factor Authentication',
@@ -703,7 +687,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
               const SizedBox(height: 10),
               _buildPrimaryButton('Save Configuration', () {
-                // Persist to shared service so grading screens can read it
                 GradingSettingsService.instance.feedbackTone =
                     GradingSettingsService.labelToApiValue(_feedbackTone);
                 GradingSettingsService.instance.gradingSensitivity = _gradingSensitivity;
