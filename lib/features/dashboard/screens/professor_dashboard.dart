@@ -147,7 +147,7 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                       icon: Icons.assignment_turned_in_outlined,
                       color: pendingGrading == 0 ? Colors.green : Colors.blue,
                       linkText: "Go to Grading Module →",
-                      onLinkPressed: () => Navigator.pushNamed(context, '/grading'),
+                      onLinkPressed: () => Navigator.pushNamed(context, '/grading', arguments:_userId,),
                     ),
 
                     const SizedBox(height: 24),
@@ -159,7 +159,7 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                       subtitle: "Automated grading with NLP",
                       icon: Icons.check_circle_outline,
                       gradient: const [Color(0xFF9333EA), Color(0xFF7E22CE)],
-                      onTap: () => Navigator.pushNamed(context, '/grading', arguments: {'assignment_id': 1}),
+                      onTap: () => Navigator.pushNamed(context, '/grading',arguments:_userId,),
                     ),
                     const SizedBox(height: 12),
                     _buildFeatureButton(

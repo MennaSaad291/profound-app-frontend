@@ -147,8 +147,13 @@ class MainLayout extends StatelessWidget {
             )),
           onTap: () {
             if (!isActive) {
-              Navigator.pop(context);
-              final args = ModalRoute.of(context)?.settings.arguments;
+              dynamic args = ModalRoute.of(context)?.settings.arguments;
+
+              // If it's a raw integer, change the key from 'userId' to 'id'
+              if (args is int) {
+                args = {'id': args};
+              }
+
               Navigator.pushNamed(context, route, arguments: args);
             }
           },

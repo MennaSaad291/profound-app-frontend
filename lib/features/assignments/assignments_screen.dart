@@ -47,47 +47,150 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     return count;
   }
 
-  void _showReviewDialog(Map sub) {
-    showModalBottomSheet(
+  // void _showReviewDialog(Map sub) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (context) => GradingReviewDialog(
+  //       submission: sub.cast<String, dynamic>(),
+  //       onFinalize: (finalGrade) async {
+  //         await _handleUpdateGrade(sub['id'], finalGrade);
+  //         if (context.mounted) Navigator.pop(context);
+  //       },
+  //     ),
+  //   );
+  // }
+  void _showReviewDialog(Map sub) async {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => GradingReviewDialog(
-        submission: sub.cast<String, dynamic>(),
-        onFinalize: (finalGrade) async {
-          await _handleUpdateGrade(sub['id'], finalGrade);
-          if (context.mounted) Navigator.pop(context);
-        },
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF9333EA)),
       ),
     );
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/submission-details/${sub['id']}'),
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      if (response.statusCode == 200) {
+        final fullSubmission = json.decode(response.body);
+        final gradeReport = fullSubmission['grade_report'] ?? sub['grade_report'] ?? {};
+        final matches = gradeReport['plagiarism_matches'] ?? [];
+
+        final mergedSubmission = {
+          ...sub,
+          'essay_content': fullSubmission['essay_content'] ?? 'No content found.',
+          'grade_report': fullSubmission['grade_report'] ?? sub['grade_report'] ?? {},
+          'plagiarism_score': fullSubmission['plagiarism_score'] ?? sub['plagiarism_score'] ?? 0,
+          'plagiarism_matches': matches,
+          'student_name': fullSubmission['student_name'] ?? sub['student_name'],
+          'ai_grade': fullSubmission['ai_grade'] ?? sub['ai_grade'],
+          'status': fullSubmission['status'] ?? sub['status'] ?? 'Ready for Review',
+        };
+
+        if (mounted) {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => GradingReviewDialog(
+              submission: mergedSubmission.cast<String, dynamic>(),
+              onFinalize: (finalGrade){
+                _handleUpdateGrade(sub['id'], finalGrade);
+                Navigator.pop(context);
+              },
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => GradingReviewDialog(
+              submission: {
+                ...sub,
+                'essay_content': sub['essay_content'] ?? 'Essay content not available.',
+              }.cast<String, dynamic>(),
+              onFinalize: (finalGrade) {
+                _handleUpdateGrade(sub['id'], finalGrade);
+                Navigator.pop(context);
+              },
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching submission details: $e")),
+        );
+
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => GradingReviewDialog(
+            submission: {
+              ...sub,
+              'essay_content': sub['essay_content'] ?? 'Error loading content. Please try again.',
+            }.cast<String, dynamic>(),
+            onFinalize: (finalGrade) {
+              _handleUpdateGrade(sub['id'], finalGrade);
+              Navigator.pop(context);
+            },
+          ),
+        );
+      }
+    }
   }
   Future<void> _handleUpdateGrade(int submissionId, double finalGrade) async {
     try {
       final response = await http.put(
         Uri.parse('http://127.0.0.1:8000/update-submission-grade/$submissionId'),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"final_grade": finalGrade.toInt()}),
+       // body: json.encode({"final_grade": finalGrade.toInt()}),
+        body: json.encode({
+          "final_grade": finalGrade,
+          "status": "Finalized"
+        }),
       );
 
       if (response.statusCode == 200) {
-        await fetchData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Grade updated successfully!"),
-              backgroundColor: Color(0xFF10B981),
-            ),
-          );
-        }
+        setState(() {
+          for (var i = 0; i < assignments.length; i++) {
+            var assign = assignments[i];
+            List submissions = assign['submissions'] ?? [];
+            for (var j = 0; j < submissions.length; j++) {
+              if (submissions[j]['id'] == submissionId) {
+                submissions[j]['ai_grade'] = finalGrade;
+                submissions[j]['status'] = "Finalized";
+                assignments[i]['submissions'] = submissions;
+                break;
+              }
+            }
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Grade finalized successfully!")),
+        );
       } else {
-        throw Exception("Server returned ${response.statusCode}: ${response.body}");
+        throw Exception("Failed to update grade");
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error updating grade: $e")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating grade: $e")),
+      );
     }
   }
   Future<void> fetchData() async {
@@ -140,12 +243,25 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       ));
 
       var response = await request.send();
-      Navigator.pop(context); // Remove loading
-
+      Navigator.pop(context);
       if (response.statusCode == 200) {
-        fetchData(); // Refresh list to see new submission
+        final responseData = await response.stream.bytesToString();
+        final Map<String, dynamic> result = json.decode(responseData);
+
+        final int plagiarismScore = result['plagiarism_score'] ?? 0;
+        final List matches = result['plagiarism_matches'] ?? [];
+
+        if (plagiarismScore > 30) {
+          _showPlagiarismWarning(plagiarismScore, matches);
+        }
+        fetchData();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Grading completed successfully!")),
+          SnackBar(content: Text("Grading completed successfully! Plagiarism: $plagiarismScore%",
+            style: TextStyle(
+              color: plagiarismScore > 30 ? Colors.red : Colors.green,
+            ),
+          ),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -572,8 +688,284 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   child: Text("No submissions yet", style: TextStyle(color: Colors.grey))),
             )
           else
-            ...submissions.map((sub) => _studentRow(sub)).toList(),
+            ...submissions.map((sub) => _buildSubmissionCard(sub)).toList(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubmissionCard(Map sub) {
+    double grade = (sub['ai_grade'] ?? 0).toDouble();
+    double plagiarism = (sub['plagiarism_score'] ?? 0).toDouble();
+
+
+    Color plagiarismColor;
+    if (plagiarism < 10) {
+      plagiarismColor = Colors.green.shade700;
+    } else if (plagiarism < 30) {
+      plagiarismColor = Colors.orange.shade700;
+    } else {
+      plagiarismColor = Colors.red.shade700;
+    }
+
+    String status = sub['status'] ?? "Ready for Review";
+    bool isFinalized = status == "Finalized";
+    String date = sub['submitted_at'] ?? DateTime.now().toString();
+
+    String formattedDate = _formatDate(date);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.blue.shade50,
+                  child: Text(
+                    sub['student_name'][0].toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        sub['student_name'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isFinalized ? Colors.purple.shade50 : Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isFinalized ? Colors.purple.shade200 : Colors.green.shade200,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isFinalized ? Icons.check_circle : Icons.star,
+                        color: isFinalized ? Colors.purple.shade700 : Colors.green.shade700,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isFinalized ? "Finalized" : "Ready for Review",
+                        style: TextStyle(
+                          color: isFinalized ? Colors.purple.shade700 : Colors.green.shade700,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Divider(color: Colors.grey.shade100, height: 1),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isFinalized ? Colors.purple.withOpacity(0.05) : const Color(0xFF9333EA).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.grade, size: 14, color: isFinalized ? Colors.purple.shade700 : const Color(0xFF9333EA)),
+                            const SizedBox(width: 4),
+                            Text(
+                              "AI Grade",
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              "${grade.toInt()}%",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: isFinalized ? Colors.purple.shade700 : const Color(0xFF9333EA),
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isFinalized
+                                    ? Colors.purple.shade100
+                                    : (grade >= 50 ? Colors.green.shade100 : Colors.orange.shade100),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isFinalized
+                                    ? "✓ Finalized"
+                                    : (grade >= 50 ? "✓ Pass" : "⚠️ Needs Work"),
+                                style: TextStyle(
+                                  color: isFinalized
+                                      ? Colors.purple.shade700
+                                      : (grade >= 50 ? Colors.green.shade700 : Colors.orange.shade700),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: plagiarism < 15 ? Colors.green.shade50 : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.content_copy, size: 14, color: plagiarism < 15 ? Colors.green.shade700 : Colors.orange.shade700),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Plagiarism",
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              "${plagiarism.toInt()}%",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: plagiarism < 15 ? Colors.green.shade700 : Colors.orange.shade700,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              plagiarism < 15 ? Icons.check_circle : Icons.warning,
+                              color: plagiarism < 15 ? Colors.green.shade700 : Colors.orange.shade700,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            InkWell(
+              onTap: isFinalized ? null : () => _showReviewDialog(sub),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: isFinalized
+                      ? const LinearGradient(
+                    colors: [Colors.grey, Colors.grey],
+                  )
+                      : const LinearGradient(
+                    colors: [Color(0xFF9333EA), Color(0xFF7E22CE)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: isFinalized ? null : [
+                    BoxShadow(
+                      color: const Color(0xFF9333EA).withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      isFinalized ? "✓ Finalized" : "📄 Review & Finalize",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -637,7 +1029,97 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       ),
     );
   }
-
+  String _formatDate(String dateString) {
+    try {
+      DateTime date = DateTime.parse(dateString);
+      return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      return dateString;
+    }
+  }
+  void _showPlagiarismWarning(int score, List matches) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("⚠️ Plagiarism Detected"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Plagiarism Score: $score%",
+              style: TextStyle(
+                color: score > 50 ? Colors.red : Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              score > 50
+                  ? "High plagiarism detected. The student's work may contain copied content."
+                  : "Moderate plagiarism detected. Please review the submission carefully.",
+            ),
+            if (matches.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Text(
+                "Similar Submissions:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 5),
+              ...matches.take(3).map((match) => Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Student: ${match['student_name'] ?? 'Unknown'}",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Text(
+                      "${match['similarity']?.toStringAsFixed(1) ?? '0'}%",
+                      style: TextStyle(
+                        color: match['similarity'] > 30 ? Colors.red : Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              if (matches.length > 3)
+                Text(
+                  "... and ${matches.length - 3} more",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+            ],
+            const SizedBox(height: 10),
+            const Text(
+              "Recommendation:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              score > 50
+                  ? "• Request a new submission\n• Use a plagiarism checker\n• Consider academic integrity policies"
+                  : "• Review the submission\n• Check for proper citations\n• Request clarification if needed",
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _backButton() => InkWell(
     onTap: () => Navigator.pop(context),
     child: const Row(children: [

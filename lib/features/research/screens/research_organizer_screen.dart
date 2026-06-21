@@ -25,17 +25,28 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   late TabController _tabs;
 
   @override
-  void initState() { super.initState(); _tabs = TabController(length: 4, vsync: this); }
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 4, vsync: this);
+  }
+
   @override
-  void dispose() { _tabs.dispose(); super.dispose(); }
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
-    final raw = args?['user_id'] ?? args?['id'];
+    // FIX: Look up 'userId' to perfectly align with what your sidebar MainLayout passes!
+    final raw = args?['userId'] ?? args?['user_id'] ?? args?['id'];
     final id = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
-    if (id != null && _userId == null) { _userId = id; _load(); }
+    if (id != null && _userId == null) {
+      _userId = id;
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -55,15 +66,50 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
           _stats     = Map<String, dynamic>.from(d['stats'] ?? {});
           _isLoading = false;
         });
-      } else if (mounted) setState(() => _isLoading = false);
-    } catch (_) { if (mounted) setState(() => _isLoading = false); }
+      } else if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  // helpers
-  Color _sc(String? s) { switch ((s??'').toLowerCase()) { case 'drafting': case 'ongoing': case 'in progress': return const Color(0xFF1D4ED8); case 'under-review': case 'under review': return const Color(0xFFB45309); case 'submitted': return const Color(0xFF7E22CE); case 'published': case 'completed': return const Color(0xFF15803D); default: return Colors.grey; } }
-  Color _sb(String? s) { switch ((s??'').toLowerCase()) { case 'drafting': case 'ongoing': case 'in progress': return const Color(0xFFEFF6FF); case 'under-review': case 'under review': return const Color(0xFFFFFBEB); case 'submitted': return const Color(0xFFFAF5FF); case 'published': case 'completed': return const Color(0xFFF0FDF4); default: return Colors.grey.shade100; } }
-  Color _rc(String? s) { switch ((s??'').toLowerCase()) { case 'reading': return const Color(0xFF1D4ED8); case 'read': return const Color(0xFF15803D); default: return Colors.grey.shade700; } }
-  Color _rb(String? s) { switch ((s??'').toLowerCase()) { case 'reading': return const Color(0xFFEFF6FF); case 'read': return const Color(0xFFF0FDF4); default: return Colors.grey.shade100; } }
+  // Color & UI helpers
+  Color _sc(String? s) {
+    switch ((s ?? '').toLowerCase()) {
+      case 'drafting': case 'ongoing': case 'in progress': return const Color(0xFF1D4ED8);
+      case 'under-review': case 'under review': return const Color(0xFFB45309);
+      case 'submitted': return const Color(0xFF7E22CE);
+      case 'published': case 'completed': return const Color(0xFF15803D);
+      default: return Colors.grey;
+    }
+  }
+
+  Color _sb(String? s) {
+    switch ((s ?? '').toLowerCase()) {
+      case 'drafting': case 'ongoing': case 'in progress': return const Color(0xFFEFF6FF);
+      case 'under-review': case 'under review': return const Color(0xFFFFFBEB);
+      case 'submitted': return const Color(0xFFFAF5FF);
+      case 'published': case 'completed': return const Color(0xFFF0FDF4);
+      default: return Colors.grey.shade100;
+    }
+  }
+
+  Color _rc(String? s) {
+    switch ((s ?? '').toLowerCase()) {
+      case 'reading': return const Color(0xFF1D4ED8);
+      case 'read': return const Color(0xFF15803D);
+      default: return Colors.grey.shade700;
+    }
+  }
+
+  Color _rb(String? s) {
+    switch ((s ?? '').toLowerCase()) {
+      case 'reading': return const Color(0xFFEFF6FF);
+      case 'read': return const Color(0xFFF0FDF4);
+      default: return Colors.grey.shade100;
+    }
+  }
 
   InputDecoration _dec(String l) => InputDecoration(
       labelText: l,
@@ -73,14 +119,6 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   Widget _tf(TextEditingController c, String l, {TextInputType? kb, int ml = 1}) =>
       TextField(controller: c, keyboardType: kb, maxLines: ml, decoration: _dec(l));
 
-  void _snack(String msg, {bool err = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
-        backgroundColor: err ? Colors.red : Colors.green,
-        duration: const Duration(seconds: 3)));
-  }
-
   // ── Publication dialog ───────────────────────────────────────────────────────
   void _showPubDialog({Map<String, dynamic>? e}) {
     final tC = TextEditingController(text: e?['title'] ?? '');
@@ -88,14 +126,20 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     final yC = TextEditingController(text: e?['year']?.toString() ?? '2026');
     final cC = TextEditingController(text: e?['citations']?.toString() ?? '0');
     final edit = e != null;
-    showModalBottomSheet(context: context, isScrollControlled: true,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(edit ? 'Edit Publication' : 'Add Publication', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
-            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async { await http.delete(Uri.parse('$_base/publications/${e['id']}')); if (ctx.mounted) Navigator.pop(ctx); _load(); }),
+            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
+              await http.delete(Uri.parse('$_base/publications/${e['id']}'));
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
+            }),
           ]),
           const SizedBox(height: 12),
           _tf(tC, 'Title'), const SizedBox(height: 8),
@@ -106,9 +150,13 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, minimumSize: const Size(double.infinity, 48)),
             onPressed: () async {
               final body = jsonEncode({'user_id': _userId, 'title': tC.text.trim(), 'journal': jC.text.trim(), 'year': int.tryParse(yC.text) ?? 2026, 'citations': int.tryParse(cC.text) ?? 0});
-              if (edit) { await http.put(Uri.parse('$_base/publications/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body); }
-              else { await http.post(Uri.parse('$_base/publications'), headers: {'Content-Type': 'application/json'}, body: body); }
-              if (ctx.mounted) Navigator.pop(ctx); _load();
+              if (edit) {
+                await http.put(Uri.parse('$_base/publications/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body);
+              } else {
+                await http.post(Uri.parse('$_base/publications'), headers: {'Content-Type': 'application/json'}, body: body);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
             },
             child: Text(edit ? 'Save Changes' : 'Add Publication', style: const TextStyle(color: Colors.white)),
           ), const SizedBox(height: 12),
@@ -126,14 +174,20 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     double prog = ((e?['progress'] ?? 0) as num).toDouble();
     String status = e?['status'] ?? 'ongoing';
     final edit = e != null;
-    showModalBottomSheet(context: context, isScrollControlled: true,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, ss) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
         child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(edit ? 'Edit Project' : 'Add Research Project', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
-            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async { await http.delete(Uri.parse('$_base/projects/${e['id']}')); if (ctx.mounted) Navigator.pop(ctx); _load(); }),
+            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
+              await http.delete(Uri.parse('$_base/projects/${e['id']}'));
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
+            }),
           ]),
           const SizedBox(height: 12),
           _tf(tC, 'Title'), const SizedBox(height: 8),
@@ -141,8 +195,8 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
           Row(children: [Expanded(child: _tf(yC, 'Year')), const SizedBox(width: 8), Expanded(child: _tf(dC, 'Deadline (YYYY-MM-DD)'))]),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(value: status, decoration: _dec('Status'),
-            items: ['ongoing','drafting','submitted','under-review','published'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-            onChanged: (v) => ss(() => status = v ?? status)),
+              items: ['ongoing','drafting','submitted','under-review','published'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (v) => ss(() => status = v ?? status)),
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('Progress', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700])),
@@ -154,9 +208,13 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, minimumSize: const Size(double.infinity, 48)),
             onPressed: () async {
               final body = jsonEncode({'user_id': _userId, 'title': tC.text.trim(), 'team': tmC.text.trim(), 'year': yC.text.trim(), 'status': status, 'deadline': dC.text.trim().isEmpty ? null : dC.text.trim(), 'progress': prog.toInt()});
-              if (edit) { await http.put(Uri.parse('$_base/projects/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body); }
-              else { await http.post(Uri.parse('$_base/projects'), headers: {'Content-Type': 'application/json'}, body: body); }
-              if (ctx.mounted) Navigator.pop(ctx); _load();
+              if (edit) {
+                await http.put(Uri.parse('$_base/projects/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body);
+              } else {
+                await http.post(Uri.parse('$_base/projects'), headers: {'Content-Type': 'application/json'}, body: body);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
             },
             child: Text(edit ? 'Save Changes' : 'Add Project', style: const TextStyle(color: Colors.white)),
           ), const SizedBox(height: 12),
@@ -171,29 +229,39 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     final fC = TextEditingController(text: e?['citation_format'] ?? 'APA');
     String rs = e?['read_status'] ?? 'to-read';
     final edit = e != null;
-    showModalBottomSheet(context: context, isScrollControlled: true,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, ss) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text(edit ? 'Edit Paper' : 'Add Literature', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
-            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async { await http.delete(Uri.parse('$_base/literature-papers/${e['id']}')); if (ctx.mounted) Navigator.pop(ctx); _load(); }),
+            if (edit) IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
+              await http.delete(Uri.parse('$_base/literature-papers/${e['id']}'));
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
+            }),
           ]),
           const SizedBox(height: 12),
           _tf(tC, 'Paper Title', ml: 2), const SizedBox(height: 8),
           _tf(fC, 'Citation Format (APA / IEEE / MLA)'), const SizedBox(height: 8),
           DropdownButtonFormField<String>(value: rs, decoration: _dec('Read Status'),
-            items: ['to-read','reading','read'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-            onChanged: (v) => ss(() => rs = v ?? rs)),
+              items: ['to-read','reading','read'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (v) => ss(() => rs = v ?? rs)),
           const SizedBox(height: 16),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, minimumSize: const Size(double.infinity, 48)),
             onPressed: () async {
               final body = jsonEncode({'user_id': _userId, 'title': tC.text.trim(), 'citation_format': fC.text.trim(), 'read_status': rs});
-              if (edit) { await http.put(Uri.parse('$_base/literature-papers/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body); }
-              else { await http.post(Uri.parse('$_base/literature-papers'), headers: {'Content-Type': 'application/json'}, body: body); }
-              if (ctx.mounted) Navigator.pop(ctx); _load();
+              if (edit) {
+                await http.put(Uri.parse('$_base/literature-papers/${e['id']}'), headers: {'Content-Type': 'application/json'}, body: body);
+              } else {
+                await http.post(Uri.parse('$_base/literature-papers'), headers: {'Content-Type': 'application/json'}, body: body);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              _load();
             },
             child: Text(edit ? 'Save Changes' : 'Add Paper', style: const TextStyle(color: Colors.white)),
           ), const SizedBox(height: 12),
@@ -216,7 +284,8 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
           onPressed: () async {
             if (c.text.trim().isEmpty) return;
             await http.post(Uri.parse('$_base/interests'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'user_id': _userId, 'name': c.text.trim()}));
-            if (ctx.mounted) Navigator.pop(ctx); _load();
+            if (ctx.mounted) Navigator.pop(ctx);
+            _load();
           },
           child: const Text('Add', style: TextStyle(color: Colors.white)),
         ),
@@ -236,16 +305,22 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
         onRefresh: _load,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [SliverToBoxAdapter(child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              _dashboard(),
-              const SizedBox(height: 16),
-              if (_deadlines.isNotEmpty) ...[_upcomingDeadlines(), const SizedBox(height: 16)],
-              _tabSection(),
-              const SizedBox(height: 32),
-            ]),
-          ))],
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _dashboard(),
+                    const SizedBox(height: 16),
+                    if (_deadlines.isNotEmpty) ...[_upcomingDeadlines(), const SizedBox(height: 16)],
+                    _tabSection(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );
@@ -258,7 +333,7 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     final projs = _stats['active_projects'] ?? 0;
     final inp   = _stats['in_progress'] ?? 0;
     final rev   = _stats['under_review'] ?? 0;
-    final pub   = _projs.where((p) => ['published','completed'].contains((p['status']??'').toLowerCase())).length;
+    final pub   = _projs.where((p) => ['published','completed'].contains((p['status'] ?? '').toLowerCase())).length;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         padding: const EdgeInsets.all(16),
@@ -271,8 +346,8 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Text('Research Dashboard', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-              child: Text('${_pubs.length + _projs.length} total', style: GoogleFonts.inter(color: Colors.white, fontSize: 11))),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                child: Text('${_pubs.length + _projs.length} total', style: GoogleFonts.inter(color: Colors.white, fontSize: 11))),
           ]),
           const SizedBox(height: 16),
           Row(children: [
@@ -287,8 +362,8 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Projects Pipeline', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 14),
@@ -304,12 +379,12 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
           child: Row(children: [
             Container(width: 52, height: 52,
-              decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.format_quote_rounded, color: Color(0xFF166534), size: 26)),
+                decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.format_quote_rounded, color: Color(0xFF166534), size: 26)),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$cits Total Citations', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -327,7 +402,7 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
 
   String _mostCited() {
     if (_pubs.isEmpty) return '—';
-    final s = List<Map<String, dynamic>>.from(_pubs)..sort((a, b) => ((b['citations']??0) as num).compareTo((a['citations']??0) as num));
+    final s = List<Map<String, dynamic>>.from(_pubs)..sort((a, b) => ((b['citations'] ?? 0) as num).compareTo((a['citations'] ?? 0) as num));
     return s.first['title'] ?? '—';
   }
 
@@ -361,7 +436,7 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   Widget _upcomingDeadlines() => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFFCA5A5))),
+        border: Border.all(color: const Color(0xFFFCA5A5))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 18),
@@ -386,7 +461,7 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   Widget _tabSection() => Column(children: [
     Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)]),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)]),
       child: TabBar(
         controller: _tabs,
         labelColor: Colors.white, unselectedLabelColor: Colors.grey[600],
@@ -398,9 +473,10 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
       ),
     ),
     const SizedBox(height: 12),
+    // FIX: Dynamic fallback limits prevent rendering errors if lists are fully empty
     SizedBox(
-      height: [80 + _pubs.length * 130.0, 80 + _projs.length * 200.0, 80 + _lit.length * 100.0, 180.0]
-          .reduce((a, b) => a > b ? a : b).clamp(200.0, 5000.0),
+      height: [180.0 + _pubs.length * 135.0, 180.0 + _projs.length * 210.0, 180.0 + _lit.length * 110.0, 240.0]
+          .reduce((a, b) => a > b ? a : b).clamp(280.0, 4500.0),
       child: TabBarView(controller: _tabs, children: [_pubsTab(), _projsTab(), _litTab(), _interestsTab()]),
     ),
   ]);
@@ -410,9 +486,9 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text('${_pubs.length} paper${_pubs.length == 1 ? '' : 's'}', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
       ElevatedButton.icon(onPressed: () => _showPubDialog(),
-        icon: const Icon(Icons.add, size: 16, color: Colors.white),
-        label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
+          icon: const Icon(Icons.add, size: 16, color: Colors.white),
+          label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
     ]),
     const SizedBox(height: 10),
     if (_pubs.isEmpty) _empty('No publications yet.\nTap Add to record your first paper.', Icons.menu_book_rounded)
@@ -422,33 +498,33 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   Widget _pubCard(Map<String, dynamic> p) => Container(
     margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.grey.shade200),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Text(p['title'] ?? '', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, height: 1.4))),
         IconButton(icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primaryPurple),
-          onPressed: () => _showPubDialog(e: p), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+            onPressed: () => _showPubDialog(e: p), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
       ]),
       const SizedBox(height: 4),
       Text('${p['journal'] ?? ''} • ${p['year'] ?? ''}', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
       const SizedBox(height: 10),
       Row(children: [
         Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(8)),
-          child: Row(children: [
-            const Icon(Icons.format_quote, size: 14, color: Color(0xFF166534)), const SizedBox(width: 4),
-            Text('${p['citations'] ?? 0} citations', style: GoogleFonts.inter(color: const Color(0xFF166534), fontSize: 12, fontWeight: FontWeight.bold)),
-          ])),
+            decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              const Icon(Icons.format_quote, size: 14, color: Color(0xFF166534)), const SizedBox(width: 4),
+              Text('${p['citations'] ?? 0} citations', style: GoogleFonts.inter(color: const Color(0xFF166534), fontSize: 12, fontWeight: FontWeight.bold)),
+            ])),
         const Spacer(),
         GestureDetector(
           onTap: () => _editCitations(p),
           child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(8)),
-            child: Row(children: [
-              const Icon(Icons.edit, size: 12, color: Color(0xFF1D4ED8)), const SizedBox(width: 4),
-              Text('Edit Citations', style: GoogleFonts.inter(color: const Color(0xFF1D4ED8), fontSize: 11, fontWeight: FontWeight.w600)),
-            ])),
+              decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(8)),
+              child: Row(children: [
+                const Icon(Icons.edit, size: 12, color: Color(0xFF1D4ED8)), const SizedBox(width: 4),
+                Text('Edit Citations', style: GoogleFonts.inter(color: const Color(0xFF1D4ED8), fontSize: 11, fontWeight: FontWeight.w600)),
+              ])),
         ),
       ]),
     ]),
@@ -470,9 +546,10 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple),
           onPressed: () async {
             await http.put(Uri.parse('$_base/publications/${pub['id']}'),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({...pub, 'citations': int.tryParse(c.text) ?? 0}));
-            if (ctx.mounted) Navigator.pop(ctx); _load();
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({...pub, 'citations': int.tryParse(c.text) ?? 0}));
+            if (ctx.mounted) Navigator.pop(ctx);
+            _load();
           },
           child: const Text('Save', style: TextStyle(color: Colors.white)),
         ),
@@ -485,9 +562,9 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text('${_projs.length} project${_projs.length == 1 ? '' : 's'}', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
       ElevatedButton.icon(onPressed: () => _showProjDialog(),
-        icon: const Icon(Icons.add, size: 16, color: Colors.white),
-        label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
+          icon: const Icon(Icons.add, size: 16, color: Colors.white),
+          label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
     ]),
     const SizedBox(height: 10),
     if (_projs.isEmpty) _empty('No research projects yet.\nTap Add to record a project.', Icons.science_outlined)
@@ -501,27 +578,27 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Text(p['title'] ?? '', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, height: 1.4))),
           const SizedBox(width: 6),
           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: _sb(status), borderRadius: BorderRadius.circular(20), border: Border.all(color: _sc(status).withOpacity(0.3))),
-            child: Text(status.replaceAll('-', ' '), style: GoogleFonts.inter(color: _sc(status), fontSize: 10, fontWeight: FontWeight.w600))),
+              decoration: BoxDecoration(color: _sb(status), borderRadius: BorderRadius.circular(20), border: Border.all(color: _sc(status).withOpacity(0.3))),
+              child: Text(status.replaceAll('-', ' '), style: GoogleFonts.inter(color: _sc(status), fontSize: 10, fontWeight: FontWeight.w600))),
           const SizedBox(width: 4),
           IconButton(icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primaryPurple),
-            onPressed: () => _showProjDialog(e: p), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+              onPressed: () => _showProjDialog(e: p), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
         ]),
         const SizedBox(height: 6),
         Text(p['year']?.toString() ?? '', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
         if (team.isNotEmpty) ...[
           const SizedBox(height: 8),
           Wrap(spacing: 4, runSpacing: 4, children: team.map((t) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(12)),
-            child: Text(t, style: GoogleFonts.inter(fontSize: 10, color: AppColors.primaryPurple)))).toList()),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(12)),
+              child: Text(t, style: GoogleFonts.inter(fontSize: 10, color: AppColors.primaryPurple)))).toList()),
         ],
         const SizedBox(height: 10),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -530,9 +607,9 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
         ]),
         const SizedBox(height: 4),
         ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(
-          value: prog / 100, minHeight: 6,
-          backgroundColor: AppColors.primaryPurple.withOpacity(0.12),
-          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryPurple))),
+            value: prog / 100, minHeight: 6,
+            backgroundColor: AppColors.primaryPurple.withOpacity(0.12),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryPurple))),
         if ((p['deadline'] ?? '').toString().isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(children: [
@@ -549,9 +626,9 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text('${_lit.length} paper${_lit.length == 1 ? '' : 's'}', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
       ElevatedButton.icon(onPressed: () => _showLitDialog(),
-        icon: const Icon(Icons.add, size: 16, color: Colors.white),
-        label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
+          icon: const Icon(Icons.add, size: 16, color: Colors.white),
+          label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
     ]),
     const SizedBox(height: 10),
     if (_lit.isEmpty) _empty('No literature saved yet.\nTap Add to track papers you are reading.', Icons.library_books_outlined)
@@ -563,27 +640,30 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)]),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(item['title'] ?? '', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 12, height: 1.4))),
           GestureDetector(onTap: () => _showLitDialog(e: item), child: const Icon(Icons.edit_outlined, size: 16, color: AppColors.primaryPurple)),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () async { await http.delete(Uri.parse('$_base/literature-papers/${item['id']}')); _load(); },
-            child: const Icon(Icons.delete_outline, size: 16, color: Colors.red)),
+              onTap: () async {
+                await http.delete(Uri.parse('$_base/literature-papers/${item['id']}'));
+                _load();
+              },
+              child: const Icon(Icons.delete_outline, size: 16, color: Colors.red)),
         ]),
         const SizedBox(height: 8),
         Row(children: [
           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: _rb(rs), borderRadius: BorderRadius.circular(12)),
-            child: Text(rs.replaceAll('-', ' '), style: GoogleFonts.inter(color: _rc(rs), fontSize: 10, fontWeight: FontWeight.w600))),
+              decoration: BoxDecoration(color: _rb(rs), borderRadius: BorderRadius.circular(12)),
+              child: Text(rs.replaceAll('-', ' '), style: GoogleFonts.inter(color: _rc(rs), fontSize: 10, fontWeight: FontWeight.w600))),
           const SizedBox(width: 8),
           if ((item['citation_format'] ?? '').toString().isNotEmpty)
             Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(12)),
-              child: Text(item['citation_format'] ?? '', style: GoogleFonts.inter(color: AppColors.primaryPurple, fontSize: 10, fontWeight: FontWeight.w600))),
+                decoration: BoxDecoration(color: const Color(0xFFF5F3FF), borderRadius: BorderRadius.circular(12)),
+                child: Text(item['citation_format'] ?? '', style: GoogleFonts.inter(color: AppColors.primaryPurple, fontSize: 10, fontWeight: FontWeight.w600))),
         ]),
       ]),
     );
@@ -594,9 +674,9 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text('${_interests.length} interest${_interests.length == 1 ? '' : 's'}', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
       ElevatedButton.icon(onPressed: _showInterestDialog,
-        icon: const Icon(Icons.add, size: 16, color: Colors.white),
-        label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
+          icon: const Icon(Icons.add, size: 16, color: Colors.white),
+          label: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12)),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryPurple, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), elevation: 0)),
     ]),
     const SizedBox(height: 12),
     if (_interests.isEmpty) _empty('No interests added yet.\nTap Add to list your research areas.', Icons.interests_outlined)
@@ -615,10 +695,10 @@ class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
   // ── Empty state ───────────────────────────────────────────────────────────────
   Widget _empty(String msg, IconData icon) => Center(
     child: Padding(padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 48, color: Colors.grey.shade300),
-        const SizedBox(height: 12),
-        Text(msg, textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13, height: 1.6)),
-      ])),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 48, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text(msg, textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 13, height: 1.6)),
+        ])),
   );
 }

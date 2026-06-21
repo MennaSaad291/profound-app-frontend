@@ -36,8 +36,19 @@ class ProfoundApp extends StatelessWidget {
         '/courses': (context) => const MainLayout(child: CoursesListScreen()),
         '/course_details': (context) => const MainLayout(child: CourseDetailsDashboard()),
         '/dashboard': (context) => const MainLayout(child: ProfessorDashboard()),
-        '/grading': (context) => const MainLayout(child: AiGradingModule()),
-        '/analytics': (context) {
+        '/grading': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          int finalUserId = 1;
+
+          if (args is int) {
+            finalUserId = args;
+          } else if (args is Map) {
+            finalUserId = args['id'] ?? args['user_id'] ?? args['userId'] ?? 1;
+          }
+
+          debugPrint("=== Unifying Routes to Private Space for User ID: $finalUserId ===");
+          return MainLayout(child: AiGradingModule(userId: finalUserId));
+        },        '/analytics': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           String? preSelected;
           if (args is Map) preSelected = args['course']?.toString();
