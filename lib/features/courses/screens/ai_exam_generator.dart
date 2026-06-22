@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'dart:math';
 // ignore: avoid_web_libraries_in_flutter
@@ -19,10 +20,16 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   String selectedDifficultyMode = 'Medium';
   String selectedBlooms = 'Apply';
   int selectedQuestions = 5;
-  double mcqPercentage = 70; // Mix mode: % of MCQ questions
+  double mcqPercentage = 70;
   bool isLoading = false;
+  bool isGeneratingVariations = false;
   String? currentExamId;
   List<dynamic> generatedQuestions = [];
+
+  // ── Content-upload mode ──────────────────────────────────────────
+  bool _fromContent = false;
+  PlatformFile? _contentFile;
+
   final TextEditingController _topicController = TextEditingController();
   final TextEditingController _questionsController =
       TextEditingController(text: '5');
@@ -77,36 +84,128 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     setState(() => isLoading = true);
     try {
       final url = 'http://127.0.0.1:8000/exams/export-word/$examId';
-
       final response = await http.get(Uri.parse(url));
-      if (response.statusCode != 200) {
-        throw Exception('Server returned ${response.statusCode}');
-      }
-
+      if (response.statusCode != 200) throw Exception('Server returned ${response.statusCode}');
       final blob = html.Blob([response.bodyBytes],
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       final blobUrl = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: blobUrl)
+      html.AnchorElement(href: blobUrl)
         ..setAttribute('download', 'Profound_Exam_$examId.docx')
         ..click();
       html.Url.revokeObjectUrl(blobUrl);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Exam download started!"),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (mounted) _snack("Exam downloaded!");
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Error: $e")));
-      }
+      if (mounted) _snack("Error: $e", isError: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _downloadVariations(String examId, int numVariations) async {
+    setState(() => isGeneratingVariations = true);
+    try {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:8000/exams/$examId/variations'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'num_variations': numVariations}),
+      ).timeout(const Duration(seconds: 120));
+
+      if (response.statusCode == 200) {
+        final blob = html.Blob([response.bodyBytes], 'application/zip');
+        final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+        html.AnchorElement(href: blobUrl)
+          ..setAttribute('download', 'Exam_Variations_$examId.zip')
+          ..click();
+        html.Url.revokeObjectUrl(blobUrl);
+        if (mounted) _snack("$numVariations variations downloaded!");
+      } else {
+        throw Exception('Server returned ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) _snack("Error generating variations: $e", isError: true);
+    } finally {
+      if (mounted) setState(() => isGeneratingVariations = false);
+    }
+  }
+
+  void _showVariationsDialog() {
+    final numController = TextEditingController(text: '3');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [
+          Icon(Icons.copy_all_outlined, color: Color(0xFF4F46E5)),
+          SizedBox(width: 8),
+          Text('Generate Exam Versions', style: TextStyle(fontSize: 18)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text(
+            'Create multiple shuffled versions of this exam.\nEach version has a unique question order and shuffled MCQ options — ideal for preventing cheating.',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: numController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Number of Versions (2–10)',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              prefixIcon: const Icon(Icons.format_list_numbered),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF2FF),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(children: [
+              _varFeature('Questions shuffled uniquely per version'),
+              _varFeature('MCQ options reshuffled per version'),
+              _varFeature('Answer key included for each version'),
+              _varFeature('Downloaded as a single ZIP file'),
+            ]),
+          ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              final n = int.tryParse(numController.text) ?? 3;
+              final clamped = n.clamp(2, 10);
+              Navigator.pop(ctx);
+              _downloadVariations(currentExamId!, clamped);
+            },
+            icon: const Icon(Icons.download, size: 18),
+            label: const Text('Generate Versions'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _varFeature(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(children: [
+      const Icon(Icons.check, color: Color(0xFF4F46E5), size: 16),
+      const SizedBox(width: 6),
+      Text(text, style: const TextStyle(fontSize: 12)),
+    ]),
+  );
+
+  void _snack(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      duration: const Duration(seconds: 4),
+    ));
   }
 
   Future<void> _handleGenerateExam() async {
@@ -129,6 +228,69 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     setState(() { isLoading = true; generatedQuestions = []; currentExamId = null; });
 
     try {
+      // ── Content-based generation (upload mode) ─────────────────
+      if (_fromContent && _contentFile != null) {
+        // When 'All' difficulty is selected, generate questions across all 3 levels
+        final difficulties = selectedDifficultyMode == 'All'
+            ? ['Easy', 'Medium', 'Hard']
+            : [selectedDifficultyMode];
+
+        List<dynamic> allContentQuestions = [];
+        String? contentExamId;
+
+        // Distribute questions evenly across selected difficulties
+        final Map<String, int> diffCounts = {};
+        if (difficulties.length == 1) {
+          diffCounts[difficulties[0]] = selectedQuestions;
+        } else {
+          int rem = selectedQuestions;
+          for (int i = 0; i < difficulties.length - 1; i++) {
+            final share = (selectedQuestions / difficulties.length).floor().clamp(1, rem - (difficulties.length - 1 - i));
+            diffCounts[difficulties[i]] = share;
+            rem -= share;
+          }
+          diffCounts[difficulties.last] = rem;
+        }
+
+        for (final entry in diffCounts.entries) {
+          if (entry.value == 0) continue;
+          final request = http.MultipartRequest(
+              'POST', Uri.parse('http://127.0.0.1:8000/exams/generate-from-content'));
+          // Clone the file bytes for each request
+          final fileBytes = _contentFile!.bytes!;
+          request.fields['topic']               = _topicController.text.trim();
+          request.fields['number_of_questions'] = entry.value.toString();
+          request.fields['difficulty']          = entry.key;
+          request.fields['blooms_level']        = selectedBlooms;
+          request.fields['question_type']       = selectedTypeMode;
+          request.fields['mcq_percentage']      = mcqPercentage.round().toString();
+          // Pass existing exam_id on subsequent calls so all questions go to same exam
+          if (contentExamId != null) {
+            request.fields['existing_exam_id'] = contentExamId;
+          }
+          request.files.add(http.MultipartFile.fromBytes(
+              'content_file', fileBytes, filename: _contentFile!.name));
+
+          final streamedRes = await request.send().timeout(const Duration(seconds: 120));
+          final res         = await http.Response.fromStream(streamedRes);
+
+          if (res.statusCode == 200) {
+            final data = jsonDecode(res.body);
+            contentExamId ??= data['exam_id'];
+            allContentQuestions.addAll(data['questions'] ?? []);
+          } else {
+            throw Exception("Server error: ${res.statusCode} — ${res.body}");
+          }
+        }
+
+        setState(() {
+          currentExamId      = contentExamId;
+          generatedQuestions = allContentQuestions;
+        });
+        return;
+      }
+
+      // ── Topic-based generation (original mode) ─────────────────
       final List<String> difficulties = resolvedDifficulties;
       List<dynamic> allQuestions = [];
       String? examId;
@@ -180,7 +342,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
               examId ??= data['exam_id'];
               allQuestions.addAll(data['questions']);
             } else {
-              throw Exception("Server Error: \${response.statusCode} - \${response.body}");
+              throw Exception("Server Error: ${response.statusCode} - ${response.body}");
             }
             remaining -= batchCount;
           }
@@ -233,12 +395,103 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Source toggle ────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(children: [
+                      Expanded(child: GestureDetector(
+                        onTap: () => setState(() { _fromContent = false; _contentFile = null; }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: !_fromContent ? const Color(0xFF4F46E5) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.edit_outlined, size: 16, color: !_fromContent ? Colors.white : Colors.grey),
+                            const SizedBox(width: 6),
+                            Text('From Topic', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: !_fromContent ? Colors.white : Colors.grey)),
+                          ]),
+                        ),
+                      )),
+                      Expanded(child: GestureDetector(
+                        onTap: () => setState(() => _fromContent = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _fromContent ? const Color(0xFF4F46E5) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            Icon(Icons.upload_file_outlined, size: 16, color: _fromContent ? Colors.white : Colors.grey),
+                            const SizedBox(width: 6),
+                            Text('From Content', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _fromContent ? Colors.white : Colors.grey)),
+                          ]),
+                        ),
+                      )),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+
                   _buildStepHeader("1", "Exam Topic"),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _topicController,
                     decoration: _inputDecoration("e.g., Data Structures"),
                   ),
+
+                  // ── Content upload (only in content mode) ───────────────
+                  if (_fromContent) ...[
+                    const SizedBox(height: 16),
+                    _buildStepHeader("1b", "Upload Lecture Material"),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await FilePicker.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['pdf', 'docx', 'txt'],
+                          withData: true,
+                        );
+                        if (result != null) setState(() => _contentFile = result.files.first);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: _contentFile != null ? const Color(0xFFEEF2FF) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _contentFile != null ? const Color(0xFF4F46E5) : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(children: [
+                          Icon(_contentFile != null ? Icons.check_circle : Icons.cloud_upload_outlined,
+                              color: _contentFile != null ? const Color(0xFF4F46E5) : Colors.grey,
+                              size: 36),
+                          const SizedBox(height: 8),
+                          Text(
+                            _contentFile != null
+                                ? _contentFile!.name
+                                : 'Tap to upload lecture notes (PDF, DOCX, TXT)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: _contentFile != null ? const Color(0xFF4F46E5) : Colors.grey,
+                            ),
+                          ),
+                          if (_contentFile != null) ...[
+                            const SizedBox(height: 4),
+                            Text('Tap to replace', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                          ],
+                        ]),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   _buildStepHeader("2", "Question Type"),
@@ -569,26 +822,60 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                       children: [
                         Text(
                           "${generatedQuestions.length} Questions Generated",
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937)),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
                         ),
                         if (currentExamId != null)
                           ElevatedButton.icon(
-                            onPressed: () =>
-                                _downloadExamToDevice(currentExamId!),
+                            onPressed: () => _downloadExamToDevice(currentExamId!),
                             icon: const Icon(Icons.file_download, size: 18),
                             label: const Text("Export"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
                       ],
                     ),
+
+                    // ── Exam Variations banner ─────────────────────────
+                    if (currentExamId != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.copy_all_outlined, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text('Generate Exam Versions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            const Text('Create shuffled versions to minimise cheating', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                          ])),
+                          isGeneratingVariations
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF4F46E5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  ),
+                                  onPressed: _showVariationsDialog,
+                                  child: const Text('Generate', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                        ]),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     ListView.builder(
                       shrinkWrap: true,

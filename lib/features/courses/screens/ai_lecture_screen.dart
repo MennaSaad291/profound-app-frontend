@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_saver/file_saver.dart';
@@ -38,6 +39,9 @@ class _AILectureScreenState extends State<AILectureScreen> {
   Map<String, dynamic>? _presentationData;
   int _currentSlide = 0;
   final Set<int> _regeneratingSlides = {};
+
+  // ── Uploaded reference material ───────────────────────────────────────────
+  PlatformFile? _uploadedMaterial;
 
   // ── Dropdowns ─────────────────────────────────────────────────────
   final List<String> _themes = [
@@ -103,12 +107,32 @@ class _AILectureScreenState extends State<AILectureScreen> {
       final instructions = _instructionsController.text.trim();
       final sources      = _sourcesController.text.trim();
 
+      // If material was uploaded, extract its text via backend and prepend to instructions
+      String uploadedContext = '';
+      if (_uploadedMaterial != null) {
+        try {
+          final req = http.MultipartRequest('POST', Uri.parse('$_base/extract-text'));
+          req.files.add(http.MultipartFile.fromBytes(
+              'file', _uploadedMaterial!.bytes!, filename: _uploadedMaterial!.name));
+          final stream = await req.send().timeout(const Duration(seconds: 30));
+          final extracted = await http.Response.fromStream(stream);
+          if (extracted.statusCode == 200) {
+            final text = jsonDecode(extracted.body)['extracted_text'] as String? ?? '';
+            if (text.isNotEmpty) {
+              // Keep first 1500 chars to avoid bloating the generation prompt
+              uploadedContext = 'Base the lecture on this reference material: ${text.substring(0, text.length.clamp(0, 1500))}. ';
+            }
+          }
+        } catch (_) {} // non-fatal — continue without uploaded content
+      }
+
       final combined = [
+        if (uploadedContext.isNotEmpty) uploadedContext,
         if (instructions.isNotEmpty) instructions,
         if (sources.isNotEmpty) 'Professor sources: $sources',
-        if (instructions.isEmpty && sources.isEmpty)
+        if (uploadedContext.isEmpty && instructions.isEmpty && sources.isEmpty)
           'Produce a thorough, student-friendly academic lecture.',
-      ].join('. ');
+      ].join(' ');
 
       final res = await http.post(
         Uri.parse('$_base/api/generate-lecture'),
@@ -318,6 +342,52 @@ class _AILectureScreenState extends State<AILectureScreen> {
         ),
         const SizedBox(height: 14),
 
+        // ── Upload reference material ──────────────────────────────
+        _lbl('Reference Material (Optional)'),
+        GestureDetector(
+          onTap: () async {
+            final result = await FilePicker.pickFiles(
+              type: FileType.custom,
+              allowedExtensions: ['pdf', 'docx', 'txt'],
+              withData: true,
+            );
+            if (result != null) setState(() => _uploadedMaterial = result.files.first);
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _uploadedMaterial != null ? _accent.withOpacity(0.06) : const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _uploadedMaterial != null ? _accent : Colors.grey.shade300,
+                width: 1.5,
+              ),
+            ),
+            child: Row(children: [
+              Icon(_uploadedMaterial != null ? Icons.check_circle_outline : Icons.upload_file_outlined,
+                  color: _uploadedMaterial != null ? _accent : Colors.grey, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text(
+                _uploadedMaterial != null
+                    ? _uploadedMaterial!.name
+                    : 'Upload lecture notes, syllabus or reference (PDF/DOCX/TXT)',
+                style: TextStyle(fontSize: 12, color: _uploadedMaterial != null ? _accent : Colors.grey),
+                overflow: TextOverflow.ellipsis,
+              )),
+              if (_uploadedMaterial != null)
+                GestureDetector(
+                  onTap: () => setState(() => _uploadedMaterial = null),
+                  child: const Icon(Icons.close, size: 16, color: Colors.grey),
+                ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('AI will base the lecture content on your uploaded material',
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+        const SizedBox(height: 14),
+
         // ── Slide count + Theme ───────────────────────────────────
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -413,8 +483,10 @@ class _AILectureScreenState extends State<AILectureScreen> {
 
   Widget _buildLoading() {
     final slideCount = int.tryParse(_pageCountController.text) ?? 10;
-    final batches = (slideCount / 3).ceil();
-    final estSecs = batches * 6;
+    // Outline: ~3s. Batches of 5 in groups of 3 parallel + 3s gap between waves.
+    final batches = (slideCount / 5).ceil();
+    final waves   = (batches / 3).ceil();
+    final estSecs = 3 + (waves * 10);
     final estMin  = estSecs ~/ 60;
     final estRemS = estSecs % 60;
     final estStr  = estMin > 0 ? '~$estMin min ${estRemS}s' : '~${estSecs}s';
@@ -424,7 +496,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
       const SizedBox(height: 24),
       Text('Generating your lecture...', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: _accent)),
       const SizedBox(height: 10),
-      Text('Slides are generated in small batches to maximise quality', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600])),
+      Text('Building outline, then generating all slides in parallel', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600])),
       const SizedBox(height: 4),
       Text('Estimated time: $estStr for $slideCount slides', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500])),
       const SizedBox(height: 4),
