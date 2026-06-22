@@ -722,7 +722,10 @@ class _StudentsSheetState extends State<_StudentsSheet> {
 
   Future<void> _uploadExcel() async {
     final result = await FilePicker.pickFiles(
-      type: FileType.custom, allowedExtensions: ['xlsx', 'xls', 'csv']);
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls', 'csv'],
+      withData: true,
+    );
     if (result == null || result.files.single.bytes == null) return;
 
     setState(() => isUploading = true);
@@ -738,31 +741,25 @@ class _StudentsSheetState extends State<_StudentsSheet> {
     ));
 
     try {
-      final file = result.files.single;
+      final file  = result.files.single;
       final bytes = file.bytes!;
-      final url = '${widget.baseUrl}/courses/${widget.course['id']}/upload-students';
+      final url   = '${widget.baseUrl}/courses/${widget.course['id']}/upload-students';
 
       final formData = html.FormData();
-      final blob = html.Blob([bytes]);
-      formData.appendBlob('file', blob, file.name);
-
-      final xhr = html.HttpRequest();
-      xhr.open('POST', url);
+      formData.appendBlob('file', html.Blob([bytes]), file.name);
 
       final completer = Completer<Map<String, dynamic>>();
-      xhr.onLoad.listen((_) {
-        completer.complete({
-          'status': xhr.status,
-          'body': xhr.responseText ?? '',
-        });
-      });
-      xhr.onError.listen((_) {
-        completer.completeError('Network error');
-      });
-      xhr.onTimeout.listen((_) {
-        completer.completeError('TimeoutException');
-      });
-      xhr.timeout = 120000; // 120 seconds
+      final xhr = html.HttpRequest()
+        ..open('POST', url)
+        ..timeout = 120000;
+
+      xhr.onLoad.listen((_) => completer.complete({
+        'status': xhr.status,
+        'body':   xhr.responseText ?? '',
+      }));
+      xhr.onError.listen((_) => completer.completeError('Network error'));
+      xhr.onTimeout.listen((_) => completer.completeError('TimeoutException'));
+
       xhr.send(formData);
 
       final response = await completer.future;
@@ -770,7 +767,7 @@ class _StudentsSheetState extends State<_StudentsSheet> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       final status = response['status'] as int;
-      final body = response['body'] as String;
+      final body   = response['body'] as String;
       Map<String, dynamic> data = {};
       try { data = jsonDecode(body); } catch (_) {}
 
@@ -781,13 +778,15 @@ class _StudentsSheetState extends State<_StudentsSheet> {
         backgroundColor: status == 200 ? Colors.green : Colors.red,
         duration: const Duration(seconds: 5),
       ));
+
       if (status == 200) _fetchStudents();
+
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(e.toString().contains('TimeoutException')
-          ? "Upload timed out — try a smaller file"
+          ? "Upload timed out. Make sure the backend is running and try again."
           : "Upload failed: $e"),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 6),

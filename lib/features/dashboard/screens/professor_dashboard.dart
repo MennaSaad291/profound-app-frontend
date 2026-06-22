@@ -20,18 +20,27 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
   int pendingGrading = 0;
   int totalStudents = 0;
   int totalCourses = 0;
+  int activeCourses = 0;
 
   int? _userId;
   String _professorName = "Professor";
+  bool _argsRead = false; // guard: read args only once
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    _professorName = args?['name'] ?? "Professor";
-    final rawId = args?['user_id'] ?? args?['id'];
-    _userId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
-    if (_userId != null && _isLoading) _fetchStats();
+    if (!_argsRead) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      _professorName = args?['name'] ?? "Professor";
+      final rawId = args?['user_id'] ?? args?['id'];
+      _userId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      _argsRead = true;
+    }
+    // Always re-fetch when this screen becomes active
+    if (_userId != null) {
+      setState(() => _isLoading = true);
+      _fetchStats();
+    }
   }
 
   Future<void> _fetchStats() async {
@@ -43,14 +52,17 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
       if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
         setState(() {
-          classAverage = (data['class_average'] as num?)?.toDouble() ?? 0;
-          averageTrend = (data['average_trend'] as num?)?.toDouble() ?? 0;
-          atRiskCount = (data['at_risk_count'] as num?)?.toInt() ?? 0;
-          pendingGrading = (data['pending_grading'] as num?)?.toInt() ?? 0;
-          totalStudents = (data['total_students'] as num?)?.toInt() ?? 0;
-          totalCourses = (data['total_courses'] as num?)?.toInt() ?? 0;
-          _isLoading = false;
+          classAverage  = (data['class_average']  as num?)?.toDouble() ?? 0;
+          averageTrend  = (data['average_trend']   as num?)?.toDouble() ?? 0;
+          atRiskCount   = (data['at_risk_count']   as num?)?.toInt()    ?? 0;
+          pendingGrading= (data['pending_grading'] as num?)?.toInt()    ?? 0;
+          totalStudents = (data['total_students']  as num?)?.toInt()    ?? 0;
+          totalCourses  = (data['total_courses']   as num?)?.toInt()    ?? 0;
+          activeCourses = (data['active_courses']  as num?)?.toInt()    ?? 0;
+          _isLoading    = false;
         });
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
@@ -100,9 +112,15 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
 
                     // ── Summary Row ──
                     Row(children: [
-                      _buildMiniStat("$totalCourses", "Courses", Icons.menu_book, const Color(0xFF4F46E5)),
+                      _buildMiniStat("$totalCourses", "Total Courses", Icons.menu_book, const Color(0xFF4F46E5)),
                       const SizedBox(width: 12),
-                      _buildMiniStat("$totalStudents", "Students", Icons.people_outline, const Color(0xFF059669)),
+                      _buildMiniStat("$activeCourses", "Active", Icons.play_circle_outline, const Color(0xFF059669)),
+                    ]),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      _buildMiniStat("$totalStudents", "Students", Icons.people_outline, const Color(0xFF7C3AED)),
+                      const SizedBox(width: 12),
+                      _buildMiniStat("$pendingGrading", "Pending Grading", Icons.assignment_late_outlined, const Color(0xFFD97706)),
                     ]),
                     const SizedBox(height: 20),
 
