@@ -334,6 +334,9 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
                 "difficulty": difficulty,
                 "blooms_level": selectedBlooms,
                 "question_type": type,
+                // Pass the first exam_id to all subsequent calls
+                // so every batch's questions land in the same exam
+                if (examId != null) "existing_exam_id": examId,
               }),
             ).timeout(const Duration(seconds: 300));
 
