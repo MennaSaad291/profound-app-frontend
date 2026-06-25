@@ -516,7 +516,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  final url = 'http://localhost:8000/graduation-projects/${item['id']}/download';
+                  final url = 'http://localhost:8000/graduation-projects/${item['id']}/view';
                   html.window.open(url, '_blank');
                 },
                 icon: const Icon(Icons.visibility_outlined, size: 15, color: Color(0xFF1D4ED8)),

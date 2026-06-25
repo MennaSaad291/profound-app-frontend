@@ -243,13 +243,17 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
         if (difficulties.length == 1) {
           diffCounts[difficulties[0]] = selectedQuestions;
         } else {
+          // Guard: can't split fewer questions than difficulty levels
+          final usedDiffs = difficulties.take(selectedQuestions).toList();
           int rem = selectedQuestions;
-          for (int i = 0; i < difficulties.length - 1; i++) {
-            final share = (selectedQuestions / difficulties.length).floor().clamp(1, rem - (difficulties.length - 1 - i));
-            diffCounts[difficulties[i]] = share;
+          for (int i = 0; i < usedDiffs.length - 1; i++) {
+            final int maxShare = rem - (usedDiffs.length - 1 - i);
+            if (maxShare < 1) break;
+            final share = (selectedQuestions / usedDiffs.length).floor().clamp(1, maxShare);
+            diffCounts[usedDiffs[i]] = share;
             rem -= share;
           }
-          diffCounts[difficulties.last] = rem;
+          if (rem > 0) diffCounts[usedDiffs.last] = rem;
         }
 
         for (final entry in diffCounts.entries) {
@@ -308,13 +312,17 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
         if (difficulties.length == 1) {
           diffMap[difficulties[0]] = typeTotal;
         } else {
+          // Guard: if typeTotal < difficulties.length, only use as many levels as we have questions
+          final usedDiffs = difficulties.take(typeTotal).toList();
           int rem = typeTotal;
-          for (int i = 0; i < difficulties.length - 1; i++) {
-            final int share = (typeTotal / difficulties.length).floor().clamp(1, rem - (difficulties.length - 1 - i));
-            diffMap[difficulties[i]] = share;
+          for (int i = 0; i < usedDiffs.length - 1; i++) {
+            final int maxShare = rem - (usedDiffs.length - 1 - i);
+            if (maxShare < 1) break;
+            final int share = (typeTotal / usedDiffs.length).floor().clamp(1, maxShare);
+            diffMap[usedDiffs[i]] = share;
             rem -= share;
           }
-          diffMap[difficulties.last] = rem;
+          if (rem > 0) diffMap[usedDiffs.last] = rem;
         }
 
         for (final diffEntry in diffMap.entries) {
@@ -325,19 +333,21 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
           const int batchSize = 5;
           while (remaining > 0) {
             final int batchCount = remaining > batchSize ? batchSize : remaining;
+
+            // Build request body — add existing_exam_id only after first batch
+            final Map<String, dynamic> reqBody = {
+              "topic": _topicController.text,
+              "number_of_questions": batchCount,
+              "difficulty": difficulty,
+              "blooms_level": selectedBlooms,
+              "question_type": type,
+            };
+            if (examId != null) reqBody["existing_exam_id"] = examId;
+
             final response = await http.post(
               Uri.parse('http://127.0.0.1:8000/exams/generate'),
               headers: {"Content-Type": "application/json"},
-              body: jsonEncode({
-                "topic": _topicController.text,
-                "number_of_questions": batchCount,
-                "difficulty": difficulty,
-                "blooms_level": selectedBlooms,
-                "question_type": type,
-                // Pass the first exam_id to all subsequent calls
-                // so every batch's questions land in the same exam
-                if (examId != null) "existing_exam_id": examId,
-              }),
+              body: jsonEncode(reqBody),
             ).timeout(const Duration(seconds: 300));
 
             if (response.statusCode == 200) {
