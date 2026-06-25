@@ -102,9 +102,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             backgroundColor: Colors.transparent,
             builder: (context) => GradingReviewDialog(
               submission: mergedSubmission.cast<String, dynamic>(),
-              onFinalize: (finalGrade){
-                _handleUpdateGrade(sub['id'], finalGrade);
-                Navigator.pop(context);
+              onFinalize: (finalGrade) async {
+                await _handleUpdateGrade(sub['id'], finalGrade);
+                if (context.mounted) Navigator.pop(context);
               },
             ),
           );
@@ -120,9 +120,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 ...sub,
                 'essay_content': sub['essay_content'] ?? 'Essay content not available.',
               }.cast<String, dynamic>(),
-              onFinalize: (finalGrade) {
-                _handleUpdateGrade(sub['id'], finalGrade);
-                Navigator.pop(context);
+              onFinalize: (finalGrade) async {
+                await _handleUpdateGrade(sub['id'], finalGrade);
+                if (context.mounted) Navigator.pop(context);
               },
             ),
           );
@@ -144,9 +144,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               ...sub,
               'essay_content': sub['essay_content'] ?? 'Error loading content. Please try again.',
             }.cast<String, dynamic>(),
-            onFinalize: (finalGrade) {
-              _handleUpdateGrade(sub['id'], finalGrade);
-              Navigator.pop(context);
+            onFinalize: (finalGrade) async {
+              await _handleUpdateGrade(sub['id'], finalGrade);
+              if (context.mounted) Navigator.pop(context);
             },
           ),
         );
@@ -158,39 +158,29 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       final response = await http.put(
         Uri.parse('http://127.0.0.1:8000/update-submission-grade/$submissionId'),
         headers: {"Content-Type": "application/json"},
-       // body: json.encode({"final_grade": finalGrade.toInt()}),
-        body: json.encode({
-          "final_grade": finalGrade,
-          "status": "Finalized"
-        }),
+        body: json.encode({"final_grade": finalGrade.toInt()}),
       );
 
       if (response.statusCode == 200) {
-        setState(() {
-          for (var i = 0; i < assignments.length; i++) {
-            var assign = assignments[i];
-            List submissions = assign['submissions'] ?? [];
-            for (var j = 0; j < submissions.length; j++) {
-              if (submissions[j]['id'] == submissionId) {
-                submissions[j]['ai_grade'] = finalGrade;
-                submissions[j]['status'] = "Finalized";
-                assignments[i]['submissions'] = submissions;
-                break;
-              }
-            }
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Grade finalized successfully!")),
-        );
+        // Refresh from server so manual_grade and final_grade are accurate
+        await fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Grade finalized successfully!"),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
       } else {
-        throw Exception("Failed to update grade");
+        throw Exception("Server returned ${response.statusCode}: ${response.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating grade: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error updating grade: $e")),
+        );
+      }
     }
   }
   Future<void> fetchData() async {
