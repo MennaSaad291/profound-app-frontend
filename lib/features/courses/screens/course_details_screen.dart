@@ -449,24 +449,42 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text("Performance Trend", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
-        AspectRatio(
-          aspectRatio: 1.7,
+        SizedBox(
+          height: 180,
           child: LineChart(LineChartData(
+            clipData: FlClipData.all(),
+            minY: 0,
+            maxY: 100,
             gridData: FlGridData(show: true, drawVerticalLine: false,
                 getDrawingHorizontalLine: (v) => FlLine(color: Colors.grey[200], strokeWidth: 1)),
             titlesData: FlTitlesData(
               rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true,
-                  getTitlesWidget: (v, _) {
-                    const s = TextStyle(color: Colors.grey, fontSize: 10);
-                    switch (v.toInt()) {
-                      case 0: return const Text('W1', style: s);
-                      case 2: return const Text('W3', style: s);
-                      case 4: return const Text('W5', style: s);
-                    }
-                    return const Text('');
-                  })),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 32,
+                  interval: 20,
+                  getTitlesWidget: (v, _) => Text(
+                    v.toInt().toString(),
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                  ),
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  getTitlesWidget: (v, meta) {
+                    final idx = v.toInt();
+                    if (idx < 0 || idx >= trend.length) return const Text('');
+                    // only label every other point to avoid crowding
+                    if (idx % 2 != 0) return const Text('');
+                    return Text('W${idx + 1}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 10));
+                  },
+                ),
+              ),
             ),
             borderData: FlBorderData(show: true,
                 border: Border(
@@ -474,7 +492,7 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
                     bottom: BorderSide(color: Colors.grey[400]!, width: 1))),
             lineBarsData: [
               LineChartBarData(
-                spots: trend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.toDouble())).toList(),
+                spots: trend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value as num).toDouble())).toList(),
                 isCurved: true, color: Colors.purple, barWidth: 3,
                 dotData: const FlDotData(show: true),
                 belowBarData: BarAreaData(show: true, color: Colors.purple.withOpacity(0.1)),
@@ -488,6 +506,18 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
 
   Widget _buildGradeDistribution() {
     final Map<String, dynamic> dist = analytics?['distribution'] ?? {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0};
+    // safely parse each grade count to double
+    double gradeVal(String key) {
+      final v = dist[key];
+      if (v == null) return 0;
+      return (v as num).toDouble();
+    }
+
+    final double maxY = [
+      gradeVal('A'), gradeVal('B'), gradeVal('C'), gradeVal('D'), gradeVal('F'),
+    ].fold(0.0, (prev, e) => e > prev ? e : prev);
+    final double chartMaxY = (maxY < 5 ? 5 : maxY + 5).ceilToDouble();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -497,11 +527,11 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text("Grade Distribution", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
-        AspectRatio(
-          aspectRatio: 2,
+        SizedBox(
+          height: 200,
           child: BarChart(BarChartData(
             alignment: BarChartAlignment.spaceAround,
-            maxY: 25,
+            maxY: chartMaxY,
             titlesData: FlTitlesData(
               bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true,
                   getTitlesWidget: (v, _) {
@@ -526,11 +556,11 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
                 border: Border(left: BorderSide(color: Colors.grey[400]!, width: 1),
                     bottom: BorderSide(color: Colors.grey[400]!, width: 1))),
             barGroups: [
-              _bar(0, dist['A'].toDouble(), Colors.green),
-              _bar(1, dist['B'].toDouble(), Colors.blue),
-              _bar(2, dist['C'].toDouble(), Colors.amber),
-              _bar(3, dist['D'].toDouble(), Colors.orange),
-              _bar(4, dist['F'].toDouble(), Colors.red),
+              _bar(0, gradeVal('A'), Colors.green),
+              _bar(1, gradeVal('B'), Colors.blue),
+              _bar(2, gradeVal('C'), Colors.amber),
+              _bar(3, gradeVal('D'), Colors.orange),
+              _bar(4, gradeVal('F'), Colors.red),
             ],
           )),
         ),
@@ -548,8 +578,7 @@ class _CourseDetailsDashboardState extends State<CourseDetailsDashboard>
 
   BarChartGroupData _bar(int x, double y, Color color) => BarChartGroupData(x: x, barRods: [
     BarChartRodData(toY: y, color: color, width: 16,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-        backDrawRodData: BackgroundBarChartRodData(show: true, toY: 25, color: Colors.grey[50])),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
   ]);
 
   Widget _legendItem(String label, Color color) => Row(mainAxisSize: MainAxisSize.min, children: [

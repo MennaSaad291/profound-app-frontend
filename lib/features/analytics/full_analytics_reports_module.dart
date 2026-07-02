@@ -43,6 +43,7 @@ class _FullAnalyticsReportsModuleState
     'includePredictiveMetrics': true,
     'includeAttendanceData': true,
     'includeGradeDistribution': true,
+    'includeAtRiskStudents': true,
   };
   final List<Map<String, String>> reportOptions = [
     {
@@ -74,6 +75,11 @@ class _FullAnalyticsReportsModuleState
       'key': 'includeGradeDistribution',
       'title': 'Grade Distribution Charts',
       'subtitle': 'Visual performance breakdowns',
+    },
+    {
+      'key': 'includeAtRiskStudents',
+      'title': 'At-Risk Students',
+      'subtitle': 'Names, IDs, and risk levels',
     },
   ];
   int? selectedCourseId;

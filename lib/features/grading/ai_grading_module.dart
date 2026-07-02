@@ -1,7 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:universal_platform/universal_platform.dart';
+import 'package:universal_html/html.dart' as html;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../grading/grading_review_dialog.dart';
 import '../../core/services/grading_settings_service.dart';
@@ -14,6 +21,7 @@ class AiGradingModule extends StatefulWidget {
 }
 
 class _AiGradingModuleState extends State<AiGradingModule> {
+  List<PlatformFile> _multipleFiles = [];
   String selectedMode = 'MODEL';
   bool isAnalyzing = false;
   bool isLoading = true;
@@ -87,7 +95,85 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       return dateString;
     }
   }
+  Future<void> _downloadFile(Uint8List bytes, String filename) async {
+    if (UniversalPlatform.isWeb) {
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } else {
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/$filename';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'General grades export',
+      );
+    }
+  }
+  Future<void> _exportGeneral(String format) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF9333EA)),
+      ),
+    );
 
+    try {
+      String endpoint;
+      String extension;
+      if (format == 'excel') {
+        endpoint = 'http://127.0.0.1:8000/export-general-excel/${widget.userId}';
+        extension = 'xlsx';
+      } else {
+        endpoint = 'http://127.0.0.1:8000/export-general-pdf/${widget.userId}';
+        extension = 'pdf';
+      }
+
+      final response = await http.get(Uri.parse(endpoint));
+      if (context.mounted) Navigator.pop(context);
+
+      if (response.statusCode == 200) {
+        String filename = 'general_grades.$extension';
+        final disposition = response.headers['content-disposition'];
+        if (disposition != null) {
+          final match = RegExp(r'filename="?([^"]+)"?').firstMatch(disposition);
+          if (match != null) {
+            filename = match.group(1)!;
+          }
+        }
+        await _downloadFile(response.bodyBytes, filename);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Export completed!")),
+          );
+        }
+      } else {
+        String errorMsg = "Export failed (${response.statusCode})";
+        try {
+          final errorJson = json.decode(response.body);
+          if (errorJson['detail'] != null) errorMsg = errorJson['detail'];
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg)),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      print("Export error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Export failed: $e")),
+        );
+      }
+    }
+  }
   // --- LOAD SAVED SUBMISSIONS FROM DATABASE ---
   Future<void> _loadSavedSubmissions() async {
     setState(() => isLoading = true);
@@ -126,51 +212,23 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       setState(() => isLoading = false);
     }
   }
-  // Future<void> _handleGrading() async {
-  //   if (_refController.text.isEmpty || _studentController.text.isEmpty) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Please provide reference and student content")),
-  //     );
-  //     return;
-  //   }
-  //
-  //   setState(() => isAnalyzing = true);
-  //
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse('http://127.0.0.1:8000/analyze-general-submission'),
-  //       headers: {"Content-Type": "application/json"},
-  //       body: json.encode({
-  //         "student_text": _studentController.text,
-  //         "mode": selectedMode,
-  //         "reference_content": _refController.text,
-  //         "feedback_tone": _sessionTone,
-  //       }),
-  //     );
-  //
-  //     if (response.statusCode == 200) {
-  //       final data = json.decode(response.body);
-  //       setState(() {
-  //         resultsList.insert(0, {
-  //           "title":             currentFileName,
-  //           "grade":             data['score_out_of_100'] ?? 0,
-  //           "summary":           data['summary'] ?? "Analysis complete.",
-  //           "strengths":         data['strengths'] ?? [],
-  //           "areas_for_improvement": data['areas_for_improvement'] ?? [],
-  //           "error_categories":  data['error_categories'] ?? {},
-  //           "recommendation":    data['recommendation'] ?? "",
-  //           "feedback_tone":     data['feedback_tone'] ?? "formal",
-  //           "time":              "Just now",
-  //         });
-  //       });
-  //     }
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-  //   } finally {
-  //     setState(() => isAnalyzing = false);
-  //   }
-  // }
-  Future<void> _handleGrading() async {
+  Future<void> _pickMultipleFiles() async {
+    FilePickerResult? result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'docx', 'txt'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        _multipleFiles = result.files;
+        _studentController.text = "${_multipleFiles.length} files selected for batch grading.";
+        currentFileName = "${_multipleFiles.length} files";
+      });
+    }
+  }
+
+  Future<void> _handleSingleGrading() async {
     if (_refController.text.isEmpty || _studentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please provide reference and student content")),
@@ -302,6 +360,113 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       setState(() => isAnalyzing = false);
     }
   }
+  Future<void> _handleGrading() async {
+    if (_refController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please provide reference content.")),
+      );
+      return;
+    }
+
+    if (_multipleFiles.isNotEmpty) {
+      await _handleBatchGrading();
+      setState(() {
+        _multipleFiles = [];
+        _studentController.clear();
+        currentFileName = "Manual Entry";
+      });
+    } else {
+      await _handleSingleGrading();
+    }
+  }
+  Future<void> _handleBatchGrading() async {
+    if (_multipleFiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No files selected. Please upload files first.")),
+      );
+      return;
+    }
+
+    setState(() => isAnalyzing = true);
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:8000/analyze-general-batch'),
+      );
+      request.fields['user_id'] = widget.userId.toString();
+      request.fields['mode'] = selectedMode;
+      request.fields['reference_content'] = _refController.text;
+      request.fields['feedback_tone'] = _sessionTone;
+
+      // Attach all files from _multipleFiles
+      for (var file in _multipleFiles) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'files',
+          file.bytes!,
+          filename: file.name,
+        ));
+      }
+
+      var streamedResponse = await request.send();
+      if (context.mounted) {
+        setState(() => isAnalyzing = false);
+      }
+
+      if (streamedResponse.statusCode == 200) {
+        var responseBody = await streamedResponse.stream.bytesToString();
+        var data = json.decode(responseBody);
+        var batchResults = data['results'] as List;
+
+        // Insert each successful result into the list
+        for (var res in batchResults) {
+          if (res['success']) {
+            var report = res['report'];
+            setState(() {
+              resultsList.insert(0, {
+                "id": res['id'],
+                "student_name": res['student_name'],
+                "title": res['student_name'],
+                "ai_grade": res['ai_grade'],
+                "grade": res['ai_grade'],
+                "summary": report['summary'] ?? "Analysis complete.",
+                "essay_content": "",
+                "date": _getCurrentDate(),
+                "plagiarism": res['plagiarism_score'],
+                "plagiarism_score": res['plagiarism_score'],
+                "plagiarism_matches": report['plagiarism_matches'] ?? [],
+                "strengths": report['strengths'] ?? [],
+                "areas_for_improvement": report['areas_for_improvement'] ?? report['improvements'] ?? [],
+                "error_categories": report['error_categories'] ?? {},
+                "recommendation": report['recommendation'] ?? "",
+                "feedback_tone": report['feedback_tone'] ?? "formal",
+                "grade_report": report,
+                "status": "Ready for Review",
+              });
+            });
+          }
+        }
+
+        int successCount = batchResults.where((r) => r['success']).length;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Batch grading completed! $successCount files graded.")),
+        );
+
+        // Clear the fields after successful grading (done in _handleGrading)
+      } else {
+        var responseBody = await streamedResponse.stream.bytesToString();
+        String errorMsg = "Batch grading failed (${streamedResponse.statusCode})";
+        try {
+          final errorJson = json.decode(responseBody);
+          if (errorJson['detail'] != null) errorMsg = errorJson['detail'];
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
+    } catch (e) {
+      setState(() => isAnalyzing = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
   void _showPlagiarismWarning(int score, List matches) {
     showDialog(
       context: context,
@@ -385,36 +550,10 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       ),
     );
   }
-  // void _showGradingReview(Map<String, dynamic> res) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => Dialog(
-  //       insetPadding: const EdgeInsets.all(16),
-  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-  //       child: GradingReviewDialog(
-  //         submission: {
-  //           'student_name': res['title'],
-  //           'ai_grade':     res['grade'],
-  //           'grade_report': {
-  //             'summary':               res['summary'],
-  //             'strengths':             res['strengths'],
-  //             'areas_for_improvement': res['areas_for_improvement'],
-  //             'error_categories':      res['error_categories'],
-  //             'recommendation':        res['recommendation'],
-  //             'feedback_tone':         res['feedback_tone'],
-  //           },
-  //           'essay_content':    '',
-  //           'plagiarism_score': 0,
-  //         },
-  //         onFinalize: (grade) async => Navigator.pop(context),
-  //       ),
-  //     ),
-  //   );
-  // }
+
   void _showGradingReview(Map<String, dynamic> res) {
-    // Normalize the input data so it fits the schema expected by GradingReviewDialog
     final Map<String, dynamic> normalizedSubmission = {
-      'id':               res['id'], // Crucial for backend targeting
+      'id':               res['id'],
       'student_name':     res['student_name'] ?? res['title'] ?? 'Student',
       'ai_grade':         res['ai_grade'] ?? res['grade'] ?? 0,
       'grade':            res['grade'] ?? res['ai_grade'] ?? 0,
@@ -487,55 +626,6 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     );
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Container(
-  //     decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: bgGradient)),
-  //     child: SingleChildScrollView(
-  //       padding: const EdgeInsets.symmetric(horizontal: 20),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           const SizedBox(height: 16),
-  //           _buildSectionHeader("1. Reference & Rubric"),
-  //           _buildInputCard(
-  //             child: Column(
-  //               children: [
-  //                 Row(children: [_modeChip("Model Answer", 'MODEL'), const SizedBox(width: 10), _modeChip("Rubric", 'RUBRIC')]),
-  //                 const SizedBox(height: 15),
-  //                 _buildTextField(_refController, "Paste reference here..."),
-  //                 const SizedBox(height: 12),
-  //                 _buildUploadArea("Upload Reference", () => _pickFile(_refController)),
-  //               ],
-  //             ),
-  //           ),
-  //           const SizedBox(height: 25),
-  //           _buildSectionHeader("2. Student Submission"),
-  //           _buildInputCard(
-  //             child: Column(
-  //               children: [
-  //                 _buildTextField(_studentController, "Paste student work...", onChanged: (val) {
-  //                   if (val.isNotEmpty && currentFileName != "Manual Entry") setState(() => currentFileName = "Manual Entry");
-  //                 }),
-  //                 const SizedBox(height: 12),
-  //                 _buildUploadArea("Browse Student File", () => _pickFile(_studentController)),
-  //                 const SizedBox(height: 16),
-  //                 _buildToneSelector(),
-  //                 const SizedBox(height: 12),
-  //                 _buildGradientButton(),
-  //               ],
-  //             ),
-  //           ),
-  //           const SizedBox(height: 35),
-  //           Text("Grading Results", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
-  //           const SizedBox(height: 15),
-  //           if (resultsList.isEmpty) _buildEmptyState() else ...resultsList.map((res) => _buildResultTile(res)).toList(),
-  //           const SizedBox(height: 40),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -596,8 +686,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
                                   }
                                 }),
                                 const SizedBox(height: 12),
-                                _buildUploadArea("Browse Student File", () => _pickFile(_studentController)),
-                                const SizedBox(height: 16),
+                                _buildUploadMenu(_studentController),                                const SizedBox(height: 16),
                                 _buildToneSelector(), // Integrated Feedback Tone Selector here
                               ],
                             ),
@@ -637,7 +726,40 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text("Student Submissions", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800)),
-        Text("${resultsList.length} total", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+        Row(
+          children: [
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'excel') {
+                  await _exportGeneral('excel');
+                } else if (value == 'pdf') {
+                  await _exportGeneral('pdf');
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.download, color: Colors.white, size: 18),
+                    SizedBox(width: 4),
+                    Text("Export", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Icon(Icons.arrow_drop_down, color: Colors.white),
+                  ],
+                ),
+              ),
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'excel', child: Text('Excel (.xlsx)')),
+                PopupMenuItem(value: 'pdf', child: Text('PDF')),
+              ],
+            ),
+            const SizedBox(width: 8),
+            Text("${resultsList.length} total", style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+          ],
+        ),
       ],
     );
   }
@@ -930,6 +1052,42 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       ),
     );
   }
+  Widget _buildUploadMenu(TextEditingController controller) {
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        if (value == 'single') {
+          await _pickFile(controller);
+        } else if (value == 'multiple') {
+          await _pickMultipleFiles();
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: primaryPurple.withOpacity(0.2), width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, color: primaryPurple, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              _multipleFiles.isNotEmpty
+                  ? "${_multipleFiles.length} files selected"
+                  : "Browse Student File",
+              style: TextStyle(color: primaryPurple, fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'single', child: Text('Single File')),
+        PopupMenuItem(value: 'multiple', child: Text('Multiple Files')),
+      ],
+    );
+  }
 
   Widget _buildGradientButton() {
     return InkWell(
@@ -938,14 +1096,14 @@ class _AiGradingModuleState extends State<AiGradingModule> {
         width: double.infinity,
         height: 55,
         decoration: BoxDecoration(
-            gradient: LinearGradient(colors: actionGradient),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: actionGradient[0].withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]
+          gradient: LinearGradient(colors: actionGradient),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: actionGradient[0].withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
         ),
         child: Center(
           child: isAnalyzing
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text("Run AI Grading and Analysis", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+              : const Text("Run AI Grading", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
         ),
       ),
     );
@@ -988,8 +1146,6 @@ class _AiGradingModuleState extends State<AiGradingModule> {
             Text('Feedback Tone',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                     color: Colors.grey.shade600, letterSpacing: 0.5)),
-            const SizedBox(width: 6),
-            Text('(from Settings)', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
           ],
         ),
         const SizedBox(height: 8),

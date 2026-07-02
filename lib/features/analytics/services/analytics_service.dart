@@ -122,6 +122,7 @@ class AnalyticsService {
         "predictive_analytics": config['includePredictiveMetrics'] ?? false,
         "attendance_data": config['includeAttendanceData'] ?? false,
         "grade_distribution": config['includeGradeDistribution'] ?? false,
+        "include_at_risk": config['includeAtRiskStudents'] ?? false,
         "export_format": format,
       }),
     );

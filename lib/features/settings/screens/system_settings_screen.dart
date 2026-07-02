@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
-import '../../../core/services/grading_settings_service.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   final int userId;
@@ -14,27 +13,10 @@ class SystemSettingsScreen extends StatefulWidget {
 }
 
 class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
-  String _activeMenu = 'rubrics';
+  String _activeMenu = 'account';
   bool _showCurrentPassword = false;
   bool _showNewPassword = false;
-  bool _twoFactorEnabled = false;
   bool _isChangingPassword = false;
-
-  bool _emailNotif = true;
-  bool _gradingNotif = true;
-  bool _deadlineNotif = true;
-  bool _atRiskNotif = true;
-
-  bool _detailedFeedback = true;
-  String _feedbackTone = 'Formal';
-  double _gradingSensitivity = 3;
-
-  final List<Map<String, dynamic>> _rubrics = [
-    {'id': 1, 'name': 'Essay Rubric - IS 405', 'course': 'IS 405', 'criteria': 5, 'lastModified': '2025-11-28'},
-    {'id': 2, 'name': 'Technical Report Rubric', 'course': 'CS 401', 'criteria': 6, 'lastModified': '2025-11-25'},
-    {'id': 3, 'name': 'Research Paper Rubric', 'course': 'CS 501', 'criteria': 8, 'lastModified': '2025-11-20'},
-    {'id': 4, 'name': 'Lab Assignment Rubric', 'course': 'CS 301', 'criteria': 4, 'lastModified': '2025-11-15'},
-  ];
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -47,17 +29,11 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   final List<Map<String, dynamic>> _menuItems = [
     {'id': 'account', 'icon': Icons.person_outline, 'label': 'Account & Profile'},
     {'id': 'security', 'icon': Icons.lock_outline, 'label': 'Security & Privacy'},
-    {'id': 'rubrics', 'icon': Icons.description_outlined, 'label': 'Grading & Rubrics'},
-    {'id': 'notifications', 'icon': Icons.notifications_outlined, 'label': 'Notifications'},
   ];
 
   @override
   void initState() {
     super.initState();
-    _feedbackTone = GradingSettingsService.apiValueToLabel(
-        GradingSettingsService.instance.feedbackTone);
-    _gradingSensitivity = GradingSettingsService.instance.gradingSensitivity;
-    _detailedFeedback   = GradingSettingsService.instance.detailedFeedback;
     _fetchProfile();
   }
 
@@ -371,8 +347,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     switch (_activeMenu) {
       case 'account': return _buildAccountSection();
       case 'security': return _buildSecuritySection();
-      case 'rubrics': return _buildRubricsSection();
-      case 'notifications': return _buildNotificationsSection();
       default: return const SizedBox();
     }
   }
@@ -403,34 +377,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget _buildSecuritySection() {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF93C5FD), width: 1.5),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.shield_outlined, color: Color(0xFF1D4ED8)),
-                  const SizedBox(width: 8),
-                  Text('Data Compliance & Privacy',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF1E3A8A))),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Profound complies with institutional data protection policies and international standards (GDPR, FERPA). All student data is encrypted and stored securely.',
-                style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF1E40AF), height: 1.5),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-
         _buildCard(
           icon: Icons.lock_outline,
           title: 'Change Password',
@@ -514,235 +460,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
-
-        _buildCard(
-          icon: Icons.security,
-          title: 'Two-Factor Authentication',
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Enable 2FA',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text('Add an extra layer of security',
-                        style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                  ],
-                ),
-              ),
-              Switch(
-                value: _twoFactorEnabled,
-                onChanged: (v) => setState(() => _twoFactorEnabled = v),
-                activeThumbColor: AppColors.primaryPurple,
-              ),
-            ],
-          ),
-        ),
       ],
-    );
-  }
-
-  Widget _buildRubricsSection() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10)],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Grading Rubrics',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text('${_rubrics.length} rubrics configured',
-                      style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.add, size: 14, color: Colors.white),
-                label: Text('New', style: GoogleFonts.inter(color: Colors.white, fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryPurple,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        ..._rubrics.map((rubric) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
-              border: Border.all(color: Colors.grey[100]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(rubric['name'],
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
-                Text('Course: ${rubric['course']}',
-                    style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                Text('Criteria: ${rubric['criteria']}',
-                    style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                Text('Last Modified: ${rubric['lastModified']}',
-                    style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: _rubricActionBtn('Edit', Icons.edit_outlined, const Color(0xFF7C3AED), const Color(0xFFFAF5FF))),
-                    const SizedBox(width: 8),
-                    Expanded(child: _rubricActionBtn('Duplicate', Icons.copy_outlined, const Color(0xFF1D4ED8), const Color(0xFFEFF6FF))),
-                    const SizedBox(width: 8),
-                    Expanded(child: _rubricActionBtn('Delete', Icons.delete_outline, const Color(0xFFB91C1C), const Color(0xFFFEF2F2))),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        )),
-        const SizedBox(height: 8),
-        _buildCard(
-          icon: Icons.settings_outlined,
-          title: 'AI Model Configuration',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Feedback Tone', style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _feedbackTone,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primaryPurple, width: 2)),
-                ),
-                items: ['Formal', 'Casual', 'Encouraging', 'Direct']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.inter(fontSize: 13))))
-                    .toList(),
-                onChanged: (v) => setState(() => _feedbackTone = v!),
-              ),
-              const SizedBox(height: 10),
-              Text('Grading Sensitivity', style: GoogleFonts.inter(color: Colors.grey[700], fontSize: 13)),
-              Row(
-                children: [
-                  Text('Lenient', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                  Expanded(
-                    child: Slider(
-                      value: _gradingSensitivity,
-                      min: 1,
-                      max: 5,
-                      divisions: 4,
-                      activeColor: AppColors.primaryPurple,
-                      onChanged: (v) => setState(() => _gradingSensitivity = v),
-                    ),
-                  ),
-                  Text('Strict', style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF5FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE9D5FF)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Enable Detailed Feedback',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-                        Text('Provide comprehensive comments',
-                            style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-                      ],
-                    ),
-                    Switch(
-                      value: _detailedFeedback,
-                      onChanged: (v) => setState(() => _detailedFeedback = v),
-                      activeThumbColor: AppColors.primaryPurple,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildPrimaryButton('Save Configuration', () {
-                GradingSettingsService.instance.feedbackTone =
-                    GradingSettingsService.labelToApiValue(_feedbackTone);
-                GradingSettingsService.instance.gradingSensitivity = _gradingSensitivity;
-                GradingSettingsService.instance.detailedFeedback = _detailedFeedback;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Configuration saved!'), backgroundColor: Colors.green),
-                );
-              }),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNotificationsSection() {
-    return _buildCard(
-      icon: Icons.notifications_outlined,
-      title: 'Notification Preferences',
-      child: Column(
-        children: [
-          _notifTile('Email Notifications', 'Receive updates via email', _emailNotif, (v) => setState(() => _emailNotif = v)),
-          const SizedBox(height: 10),
-          _notifTile('Grading Completion', 'When AI grading finishes', _gradingNotif, (v) => setState(() => _gradingNotif = v)),
-          const SizedBox(height: 10),
-          _notifTile('Deadline Reminders', 'Upcoming assignment deadlines', _deadlineNotif, (v) => setState(() => _deadlineNotif = v)),
-          const SizedBox(height: 10),
-          _notifTile('At-Risk Student Alerts', 'Predictive analytics warnings', _atRiskNotif, (v) => setState(() => _atRiskNotif = v)),
-          const SizedBox(height: 10),
-          _buildPrimaryButton('Save Preferences', () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Preferences saved!'), backgroundColor: Colors.green),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _notifTile(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text(subtitle, style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 11)),
-            ],
-          ),
-          Switch(value: value, onChanged: onChanged, activeThumbColor: AppColors.primaryPurple),
-        ],
-      ),
     );
   }
 
@@ -803,28 +521,6 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           elevation: 0,
         ),
         child: Text(label, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  Widget _rubricActionBtn(String label, IconData icon, Color color, Color bg) {
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.4), width: 1.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: GoogleFonts.inter(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-          ],
-        ),
       ),
     );
   }

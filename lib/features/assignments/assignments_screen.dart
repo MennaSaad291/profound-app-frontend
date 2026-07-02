@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import"../grading/grading_review_dialog.dart";
 import '../../core/services/grading_settings_service.dart';
+import 'package:universal_platform/universal_platform.dart';
+import 'package:universal_html/html.dart' as html;
 
 class AssignmentsScreen extends StatefulWidget {
   final int courseId;
@@ -23,6 +30,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   List assignments = [];
   bool isLoading = true;
   int? expandedAssignmentId;
+  String _sessionTone = GradingSettingsService.instance.feedbackTone;
 
   @override
   void initState() {
@@ -153,6 +161,29 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       }
     }
   }
+  Future<void> _downloadFile(Uint8List bytes, String filename) async {
+    if (UniversalPlatform.isWeb) {
+      // Web: use AnchorElement to trigger download
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } else {
+      // Mobile / Desktop: save to temporary directory and share
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/$filename';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Grades for assignment',
+      );
+      // (Optional) delete the file after sharing
+      // await file.delete();
+    }
+  }
   Future<void> _handleUpdateGrade(int submissionId, double finalGrade) async {
     try {
       final response = await http.put(
@@ -223,8 +254,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       var request = http.MultipartRequest(
           'POST', Uri.parse('http://127.0.0.1:8000/grade-submission/$assignmentId'));
 
-      request.fields['feedback_tone'] =
-          GradingSettingsService.instance.feedbackTone;
+      // request.fields['feedback_tone'] =
+      //     GradingSettingsService.instance.feedbackTone;
+      request.fields['feedback_tone'] = _sessionTone;
 
       request.files.add(http.MultipartFile.fromBytes(
           'file',
@@ -265,7 +297,99 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       );
     }
   }
+  Future<void> _handleBatchGrade(int assignmentId) async {
+    FilePickerResult? result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'docx', 'txt'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    await _sendBatchRequest(assignmentId, result.files);
+  }
 
+  Future<void> _sendBatchRequest(int assignmentId, List<PlatformFile> files) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF9333EA)),
+      ),
+    );
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:8000/grade-submission-batch/$assignmentId'),
+      );
+      // request.fields['feedback_tone'] = GradingSettingsService.instance.feedbackTone;
+      request.fields['feedback_tone'] = _sessionTone;
+      for (var f in files) {
+        request.files.add(http.MultipartFile.fromBytes('files', f.bytes!, filename: f.name));
+      }
+
+      var streamedResponse = await request.send();
+      if (context.mounted) Navigator.pop(context);
+
+      var responseBody = await streamedResponse.stream.bytesToString();
+
+      if (streamedResponse.statusCode == 200) {
+        final data = json.decode(responseBody);
+        _showBatchSummary(context, data['results']);
+        await fetchData();
+      } else {
+        String errorMsg = "Server error (${streamedResponse.statusCode})";
+        try {
+          final errorJson = json.decode(responseBody);
+          if (errorJson['detail'] != null) errorMsg = errorJson['detail'];
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Batch grading failed: $errorMsg")),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      print("Batch request error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Connection error: $e")),
+        );
+      }
+    }
+  }
+
+  void _showBatchSummary(BuildContext context, List results) {
+    int success = results.where((r) => r['success'] == true).length;
+    int fail = results.length - success;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Batch Grading Complete"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Processed ${results.length} files."),
+            Text("Successful: $success"),
+            if (fail > 0) Text("Failed: $fail", style: const TextStyle(color: Colors.red)),
+            if (fail > 0)
+              ...results.where((r) => !r['success']).map((r) =>
+                  Text("• ${r['filename']}: ${r['error']}",
+                      style: const TextStyle(fontSize: 12, color: Colors.red))
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -463,6 +587,74 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       fetchData();
     }
   }
+  Future<void> _exportGrades(int assignmentId, String format) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF9333EA)),
+      ),
+    );
+
+    try {
+      String endpoint;
+      String extension;
+      if (format == 'excel') {
+        endpoint = 'http://127.0.0.1:8000/export-grades-excel/$assignmentId';
+        extension = 'xlsx';
+      } else {
+        endpoint = 'http://127.0.0.1:8000/export-grades-pdf/$assignmentId';
+        extension = 'pdf';
+      }
+
+      final response = await http.get(Uri.parse(endpoint));
+      if (context.mounted) Navigator.pop(context); // close loading
+
+      if (response.statusCode == 200) {
+        // Extract filename from Content-Disposition header
+        String filename = 'grades.$extension';
+        final disposition = response.headers['content-disposition'];
+        if (disposition != null) {
+          final match = RegExp(r'filename="?([^"]+)"?').firstMatch(disposition);
+          if (match != null) {
+            filename = match.group(1)!;
+          }
+        }
+
+        // Download the file
+        await _downloadFile(response.bodyBytes, filename);
+
+        // Show success message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Export completed!")),
+          );
+        }
+      } else {
+        // Handle server error
+        String errorMsg = "Export failed (${response.statusCode})";
+        try {
+          final errorJson = json.decode(response.body);
+          if (errorJson['detail'] != null) errorMsg = errorJson['detail'];
+        } catch (_) {}
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg)),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      print("Export error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Export failed: $e")),
+        );
+      }
+    }
+  }
+
 
   Widget _uploadBox(String label, Color themeColor, VoidCallback onTap) {
     return InkWell(
@@ -652,24 +844,98 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     const Text("Student Submissions",
+          //         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+          //     ElevatedButton.icon(
+          //       style: ElevatedButton.styleFrom(
+          //         backgroundColor: const Color(0xFF10B981),
+          //         foregroundColor: Colors.white,
+          //         elevation: 0,
+          //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          //       ),
+          //       onPressed: () => _handleGradeSubmission(assign['id']),
+          //       icon: const Icon(Icons.add, size: 16),
+          //       label: const Text("Grade New"),
+          //     )
+          //   ],
+          // ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Student Submissions",
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _handleGradeSubmission(assign['id']),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text("Grade New"),
-              )
+              Row(
+                children: [
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'excel') {
+                        await _exportGrades(assign['id'], 'excel');
+                      } else if (value == 'pdf') {
+                        await _exportGrades(assign['id'], 'pdf');
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.download, color: Colors.white, size: 18),
+                          SizedBox(width: 4),
+                          Text("Export", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          Icon(Icons.arrow_drop_down, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'excel', child: Text('📊 Excel (.xlsx)')),
+                      PopupMenuItem(value: 'pdf', child: Text('📄 PDF')),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'single':
+                          await _handleGradeSubmission(assign['id']);
+                          break;
+                        case 'multiple':
+                          await _handleBatchGrade(assign['id']);
+                          break;
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.add, color: Colors.white, size: 18),
+                          SizedBox(width: 4),
+                          Text("Grade", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          Icon(Icons.arrow_drop_down, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'single', child: Text('Single File')),
+                      PopupMenuItem(value: 'multiple', child: Text('Multiple Files')),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Tone selector (new)
+          _buildToneSelector(),
           const SizedBox(height: 12),
           if (submissions.isEmpty)
             const Padding(
@@ -683,7 +949,65 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       ),
     );
   }
+  Widget _buildToneSelector() {
+    const tones = [
+      {'value': 'formal',      'label': 'Formal',      'icon': Icons.school,                  'color': Color(0xFF3B82F6)},
+      {'value': 'encouraging', 'label': 'Encouraging',  'icon': Icons.sentiment_satisfied_alt, 'color': Color(0xFF10B981)},
+      {'value': 'strict',      'label': 'Strict',       'icon': Icons.gavel,                   'color': Color(0xFFEF4444)},
+    ];
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.tune, size: 14, color: Colors.grey.shade500),
+            const SizedBox(width: 6),
+            Text('Feedback Tone',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600, letterSpacing: 0.5)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: tones.map((t) {
+            final val     = t['value'] as String;
+            final selected = _sessionTone == val;
+            final color   = t['color'] as Color;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _sessionTone = val),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? color.withOpacity(0.12) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? color : Colors.grey.shade200,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(t['icon'] as IconData, size: 18, color: selected ? color : Colors.grey.shade400),
+                      const SizedBox(height: 4),
+                      Text(t['label'] as String,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                              color: selected ? color : Colors.grey.shade500)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
   Widget _buildSubmissionCard(Map sub) {
     double grade = (sub['ai_grade'] ?? 0).toDouble();
     double plagiarism = (sub['plagiarism_score'] ?? 0).toDouble();
@@ -1021,8 +1345,9 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
   String _formatDate(String dateString) {
     try {
-      DateTime date = DateTime.parse(dateString);
-      return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+      DateTime utc = DateTime.parse(dateString + 'Z');
+      DateTime local = utc.toLocal();
+      return "${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}";
     } catch (e) {
       return dateString;
     }
