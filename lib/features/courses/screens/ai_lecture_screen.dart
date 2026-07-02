@@ -397,16 +397,15 @@ class _AILectureScreenState extends State<AILectureScreen> {
 
       _lbl('Professor Instructions'),
       TextField(controller: _instrCtrl, maxLines: 3,
-          decoration: _dec('e.g., Add real-world examples. Cover security implications.',
-              helper: 'GPT-4o follows your instructions exactly')),
+          decoration: _dec('e.g., Add real-world examples. Cover security implications.')),
       const SizedBox(height: 12),
 
-      _lbl('Reference (book name or URL)'),
+      _lbl('Reference (Book name or URL)'),
       TextField(controller: _refCtrl,
           decoration: _dec('e.g., Database System Concepts — Silberschatz')),
       const SizedBox(height: 12),
 
-      _lbl('Upload Reference (optional)'),
+      _lbl('Upload Reference (Optional)'),
       _buildUploadArea(),
       const SizedBox(height: 12),
 

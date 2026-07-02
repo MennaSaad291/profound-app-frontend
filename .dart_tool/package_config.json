@@ -26,6 +26,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "charcode",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/charcode-1.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "clock",
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/clock-1.1.2",
       "packageUri": "lib/",
@@ -54,6 +60,12 @@
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "csslib",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/csslib-1.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "cupertino_icons",
@@ -98,6 +110,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "file",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/file-7.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "file_picker",
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/file_picker-11.0.2",
       "packageUri": "lib/",
@@ -108,6 +126,12 @@
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/file_saver-0.3.1",
       "packageUri": "lib/",
       "languageVersion": "2.17"
+    },
+    {
+      "name": "fixnum",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/fixnum-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "fl_chart",
@@ -156,6 +180,12 @@
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/google_fonts-8.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.9"
+    },
+    {
+      "name": "html",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/html-0.15.6",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
     },
     {
       "name": "http",
@@ -231,7 +261,7 @@
     },
     {
       "name": "mime",
-      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/mime-2.0.0",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/mime-1.0.6",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -344,6 +374,18 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "share_plus",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus-7.2.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
+      "name": "share_plus_platform_interface",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus_platform_interface-3.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "sky_engine",
       "rootUri": "file:///C:/flutter/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
@@ -404,6 +446,24 @@
       "languageVersion": "3.5"
     },
     {
+      "name": "universal_html",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/universal_html-2.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
+      "name": "universal_io",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/universal_io-2.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
+      "name": "universal_platform",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/universal_platform-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "url_launcher",
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher-6.3.2",
       "packageUri": "lib/",
@@ -450,6 +510,12 @@
       "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_windows-3.1.5",
       "packageUri": "lib/",
       "languageVersion": "3.8"
+    },
+    {
+      "name": "uuid",
+      "rootUri": "file:///C:/Users/ma902/AppData/Local/Pub/Cache/hosted/pub.dev/uuid-4.5.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "vector_math",
