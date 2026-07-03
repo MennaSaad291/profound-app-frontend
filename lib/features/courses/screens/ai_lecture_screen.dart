@@ -165,13 +165,26 @@ class _AILectureScreenState extends State<AILectureScreen> {
 
       if (res.statusCode == 200) {
         final d = jsonDecode(res.body);
+        final newSlides = d['slides'] as List;
+        final changedIdx = ((d['changed_indices'] as List?) ?? [])
+            .map((e) => e as int).toSet();
         setState(() {
-          _data = {..._data!, 'slides': d['slides']};
-          _imgCache.clear(); // clear image cache after edit
+          _data = {..._data!, 'slides': newSlides};
+          // Only drop cache entries for slides that actually changed —
+          // previously this cleared the ENTIRE image cache on every edit,
+          // which meant even a one-word tweak to slide 3 re-generated
+          // (and re-billed) DALL-E images for every other slide too.
+          for (final i in changedIdx) {
+            if (i < newSlides.length) {
+              final key = _imgKeyFor(newSlides[i] as Map);
+              if (key.isNotEmpty) _imgCache.remove(key);
+            }
+          }
           _chatLog.add({'role':'ai','text': d['message'] ?? 'Done.'});
         });
-        // Re-prefetch images for updated slides
-        _prefetchAllImages(d['slides'] as List);
+        // Re-prefetch only pulls images not already cached, so unchanged
+        // slides reuse their existing images instead of re-generating.
+        _prefetchAllImages(newSlides);
       } else {
         setState(() => _chatLog.add({'role':'ai','text':_errMsg(res.body),'err':true}));
       }
@@ -199,7 +212,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
       final slides = (_data!['slides'] as List).cast<Map<String,dynamic>>();
       final enriched = <Map<String,dynamic>>[];
       for (final s in slides) {
-        final prompt = _cl(s['image_prompt']);
+        final prompt = _imgKeyFor(s);
         Map<String,dynamic> sl = Map.from(s);
         if (prompt.isNotEmpty) {
           final bytes = await _fetchImg(prompt);
@@ -242,6 +255,14 @@ class _AILectureScreenState extends State<AILectureScreen> {
   }
 
   // ── DALL-E image fetch (cached) ───────────────────────────────────
+  // Resolves the same effective key the UI panel uses: image_prompt,
+  // falling back to image_keyword when the model left image_prompt empty.
+  String _imgKeyFor(Map slide) {
+    final prompt = _cl(slide['image_prompt']);
+    if (prompt.isNotEmpty) return prompt;
+    return _cl(slide['image_keyword']);
+  }
+
   Future<Uint8List?> _fetchImg(String prompt) async {
     if (prompt.isEmpty) return null;
     if (_imgCache.containsKey(prompt)) return _imgCache[prompt];
@@ -250,7 +271,7 @@ class _AILectureScreenState extends State<AILectureScreen> {
         Uri.parse('$_base/api/generate-slide-image'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'image_prompt': prompt}),
-      ).timeout(const Duration(seconds: 45));
+      ).timeout(const Duration(seconds: 75));
       if (r.statusCode == 200 && r.bodyBytes.isNotEmpty) {
         _imgCache[prompt] = r.bodyBytes;
         return r.bodyBytes;
@@ -266,10 +287,10 @@ class _AILectureScreenState extends State<AILectureScreen> {
   Future<void> _prefetchAllImages(List slides) async {
     setState(() => _isFetchingImgs = true);
 
-    // Collect all unique prompts
+    // Collect all unique prompts (falling back to image_keyword, same as the panel)
     final prompts = <String>{};
     for (final s in slides) {
-      final p = _cl(s['image_prompt']);
+      final p = _imgKeyFor(s as Map);
       if (p.isNotEmpty && !_imgCache.containsKey(p)) prompts.add(p);
     }
 
