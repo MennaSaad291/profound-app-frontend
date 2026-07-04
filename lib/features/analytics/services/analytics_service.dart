@@ -1,16 +1,23 @@
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html' as html;
+// Conditional import: web uses dart:html, other platforms use a stub
+import 'analytics_service_export_stub.dart'
+    if (dart.library.html) 'analytics_service_export_web.dart';
 
 class AnalyticsService {
   static const String baseUrl = "http://127.0.0.1:8000";
 
-  static Future<List<dynamic>> getCourses({int? userId}) async {
-    final uri = Uri.parse('$baseUrl/analysis/courses').replace(
-      queryParameters: userId != null ? {'user_id': userId.toString()} : null,
+  static Future<List<dynamic>> getCourses({
+    int? userId,
+    http.Client? client,
+  }) async {
+    final c = client ?? http.Client();
+    final response = await c.get(
+      Uri.parse('$baseUrl/analysis/courses').replace(
+        queryParameters: {if (userId != null) 'user_id': userId.toString()},
+      ),
     );
-    final response = await http.get(uri);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -34,8 +41,10 @@ class AnalyticsService {
     int? days,
     String? fromDate,
     String? toDate,
+    http.Client? client,
   }) async {
-    final response = await http.post(
+    final c = client ?? http.Client();
+    final response = await c.post(
       Uri.parse('$baseUrl/analysis/'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
@@ -93,8 +102,12 @@ class AnalyticsService {
     }
   }
 
-  static Future<List<dynamic>> getBenchmarks(int courseId) async {
-    final response = await http.get(
+  static Future<List<dynamic>> getBenchmarks(
+    int courseId, {
+    http.Client? client,
+  }) async {
+    final c = client ?? http.Client();
+    final response = await c.get(
       Uri.parse('$baseUrl/analysis/benchmarks?course_id=$courseId'),
     );
 
@@ -144,17 +157,10 @@ class AnalyticsService {
     }
 
     final bytes = response.bodyBytes;
-
     final fileName =
         "analytics_report_${DateTime.now().millisecondsSinceEpoch}.${format == 'excel' ? 'xlsx' : 'pdf'}";
 
-    final blob = html.Blob([bytes]);
-    final urlBlob = html.Url.createObjectUrlFromBlob(blob);
-
-    final anchor = html.AnchorElement(href: urlBlob)
-      ..setAttribute("download", fileName)
-      ..click();
-
-    html.Url.revokeObjectUrl(urlBlob);
+    // Platform-conditional download (web: dart:html, other: stub/share)
+    downloadBytes(bytes.toList(), fileName);
   }
 }
