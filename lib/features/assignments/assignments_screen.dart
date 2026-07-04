@@ -265,7 +265,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       ));
 
       var response = await request.send();
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
       if (response.statusCode == 200) {
         final responseData = await response.stream.bytesToString();
         final Map<String, dynamic> result = json.decode(responseData);
@@ -276,25 +276,34 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         if (plagiarismScore > 30) {
           _showPlagiarismWarning(plagiarismScore, matches);
         }
-        fetchData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Grading completed successfully! Plagiarism: $plagiarismScore%",
-            style: TextStyle(
-              color: plagiarismScore > 30 ? Colors.red : Colors.green,
+        // await so the list is refreshed before the snackbar appears
+        await fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Grading completed successfully! Plagiarism: $plagiarismScore%",
+                style: TextStyle(
+                  color: plagiarismScore > 30 ? Colors.red : Colors.green,
+                ),
+              ),
             ),
-          ),
-          ),
-        );
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error during grading process.")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error during grading process.")),
+          );
+        }
       }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Connection error: $e")),
-      );
+      if (context.mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Connection error: $e")),
+        );
+      }
     }
   }
   Future<void> _handleBatchGrade(int assignmentId) async {
@@ -824,7 +833,18 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
             title: Text(assign['assignment_name'],
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text("${submissions.length} Submissions"),
-            trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+            // Edit icon + expand toggle
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF9333EA)),
+                  tooltip: "View / Edit Assignment",
+                  onPressed: () => _showViewEditAssignmentModal(assign),
+                ),
+                Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+              ],
+            ),
             onTap: () => setState(
                     () => expandedAssignmentId = isExpanded ? null : assign['id']),
           ),
@@ -835,6 +855,160 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         ],
       ),
     );
+  }
+
+  // ── View / Edit assignment modal ──────────────────────────────────────────
+  void _showViewEditAssignmentModal(Map assign) {
+    final nameController     = TextEditingController(text: assign['assignment_name'] ?? '');
+    final questionController = TextEditingController(text: assign['assignment_question'] ?? '');
+    final modelController    = TextEditingController(text: assign['model_answer'] ?? '');
+    final rubricController   = TextEditingController(text: assign['rubric'] ?? '');
+    bool isModel = assign['is_model_answer'] == true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("View / Edit Assignment",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _modalLabel("Title"),
+                      _modalTextField(nameController, "Assignment title..."),
+                      const SizedBox(height: 16),
+                      _modalLabel("Question"),
+                      _modalTextField(questionController,
+                          "Assignment question...", maxLines: 4),
+                      const SizedBox(height: 24),
+                      // Mode tab selector
+                      Row(
+                        children: [
+                          _tabItem("Model Answer", isModel,
+                                  () => setModalState(() => isModel = true)),
+                          _tabItem("Rubric", !isModel,
+                                  () => setModalState(() => isModel = false)),
+                        ],
+                      ),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      if (isModel)
+                        _modalTextField(modelController,
+                            "Model answer...", maxLines: 6)
+                      else
+                        _modalTextField(rubricController,
+                            "Rubric criteria...", maxLines: 6),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancel",
+                          style: TextStyle(color: Colors.grey)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9333EA),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _handleUpdateAssignment(
+                        assign['id'],
+                        nameController.text,
+                        questionController.text,
+                        isModel,
+                        modelController.text,
+                        rubricController.text,
+                      ),
+                      child: const Text("Save Changes",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleUpdateAssignment(
+    int assignmentId,
+    String name,
+    String question,
+    bool isModel,
+    String modelText,
+    String rubricText,
+  ) async {
+    var request = http.MultipartRequest(
+        'PUT', Uri.parse('http://127.0.0.1:8000/assignments/$assignmentId'));
+    request.fields['assignment_name']     = name;
+    request.fields['assignment_question'] = question;
+    request.fields['is_model_answer']     = isModel.toString();
+    request.fields['model_answer']        = isModel ? modelText : '';
+    request.fields['rubric']              = isModel ? '' : rubricText;
+
+    try {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        if (mounted) Navigator.pop(context);
+        fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Assignment updated successfully!"),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to update assignment.")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
   }
 
   Widget _buildSubmissionList(Map assign, List submissions) {
