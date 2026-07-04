@@ -100,7 +100,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           'plagiarism_matches': matches,
           'student_name': fullSubmission['student_name'] ?? sub['student_name'],
           'ai_grade': fullSubmission['ai_grade'] ?? sub['ai_grade'],
-          'status': fullSubmission['status'] ?? sub['status'] ?? 'Ready for Review',
+          'status': fullSubmission['status'] ?? sub['status'] ?? 'ready',
         };
 
         if (mounted) {
@@ -1196,8 +1196,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       plagiarismColor = Colors.red.shade700;
     }
 
-    String status = sub['status'] ?? "Ready for Review";
-    bool isFinalized = status == "Finalized";
+    String status = sub['status'] ?? "ready";
+    bool isFinalized = status == "Finalized" || status == "graded";
     String date = sub['submitted_at'] ?? DateTime.now().toString();
 
     String formattedDate = _formatDate(date);
