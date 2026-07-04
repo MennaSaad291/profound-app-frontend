@@ -32,10 +32,13 @@ class _FullAnalyticsReportsModuleState
   List<Map<String, dynamic>> errorAnalysisData = [];
   List courses = [];
   bool isCoursesLoading = false;
+  List<String> semesters = [];
+  bool isSemestersLoading = false;
   List<Map<String, dynamic>> departmentBenchmarks = [];
   Map<String, dynamic> correlationData = {};
   bool isLoading = false;
-  String selectedFormat = "pdf"; // default
+  int? _userId;
+  String selectedFormat = "pdf";
   Map<String, bool> reportConfig = {
     'includeStudentPII': false,
     'includeDepartmentBenchmarks': true,
@@ -83,11 +86,30 @@ class _FullAnalyticsReportsModuleState
     },
   ];
   int? selectedCourseId;
+
+  bool _argsRead = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_argsRead) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        final raw = args['id'] ?? args['user_id'] ?? args['userId'];
+        _userId = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+      } else if (args is int) {
+        _userId = args;
+      }
+      _argsRead = true;
+      fetchCourses();
+      fetchSemesters();
+      fetchInitialAnalytics();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    fetchCourses();
-    fetchInitialAnalytics();
   }
 
   int? getDays(String range) {
@@ -107,7 +129,7 @@ class _FullAnalyticsReportsModuleState
     setState(() => isLoading = true);
 
     final data = await AnalyticsService.getAnalytics(
-      courseId: null, // ALL courses
+      courseId: null,
       semester: selectedSemester,
       days: getDays(dateRange),
     );
@@ -121,17 +143,15 @@ class _FullAnalyticsReportsModuleState
       errorAnalysisData = List<Map<String, dynamic>>.from(
         data['errorAnalysis'] ?? [],
       );
-
       isLoading = false;
     });
   }
 
   Future<void> fetchCourses() async {
     setState(() => isCoursesLoading = true);
-
     try {
-      final data = await AnalyticsService.getCourses();
-
+      final data = await AnalyticsService.getCourses(userId: _userId);
+      if (!mounted) return;
       setState(() {
         courses = data;
         isCoursesLoading = false;
@@ -139,6 +159,21 @@ class _FullAnalyticsReportsModuleState
     } catch (e) {
       setState(() => isCoursesLoading = false);
       print("Error loading courses: $e");
+    }
+  }
+
+  Future<void> fetchSemesters() async {
+    setState(() => isSemestersLoading = true);
+    try {
+      final data = await AnalyticsService.getSemesters();
+      if (!mounted) return;
+      setState(() {
+        semesters = data;
+      });
+    } catch (e) {
+      print("Error loading semesters: $e");
+    } finally {
+      if (mounted) setState(() => isSemestersLoading = false);
     }
   }
 
@@ -395,12 +430,7 @@ class _FullAnalyticsReportsModuleState
                   _buildDropdown(
                     "Semester",
                     selectedSemester,
-                    [
-                      'All Semesters',
-                      'Fall 2025',
-                      'Spring 2026',
-                      'Summer 2026',
-                    ],
+                    ['All Semesters', ...semesters],
                     (val) {
                       setState(() {
                         selectedSemester = val!;
@@ -612,18 +642,18 @@ class _FullAnalyticsReportsModuleState
                   _buildPredictiveChart(),
                   _buildCorrelationChart(),
                   _buildPieChartSection(),
-                    _buildErrorAnalysisSection(),
-                    _buildBenchmarksSection(),
-                    _buildReportConfigSection(),
-                    _buildExportButton(),
-                    const SizedBox(height: 50),
-                  ],
-                ),
+                  _buildErrorAnalysisSection(),
+                  _buildBenchmarksSection(),
+                  _buildReportConfigSection(),
+                  _buildExportButton(),
+                  const SizedBox(height: 50),
+                ],
               ),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildErrorAnalysisSection() {
@@ -693,7 +723,6 @@ class _FullAnalyticsReportsModuleState
                       ),
 
                       const SizedBox(height: 12),
-
                     ],
                   ),
           ),
@@ -707,9 +736,9 @@ class _FullAnalyticsReportsModuleState
     final affectedStudents = data['affected_students'] ?? 0;
 
     final Map<String, Color> categoryColors = {
-      'Conceptual':   const Color(0xFF8B5CF6),
-      'Structural':   const Color(0xFF0EA5E9),
-      'Language':     const Color(0xFFF97316),
+      'Conceptual': const Color(0xFF8B5CF6),
+      'Structural': const Color(0xFF0EA5E9),
+      'Language': const Color(0xFFF97316),
       'Completeness': const Color(0xFF10B981),
     };
     final Color accent =
@@ -817,9 +846,7 @@ class _FullAnalyticsReportsModuleState
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: accent.withOpacity(0.15),
-                      ),
+                      border: Border.all(color: accent.withOpacity(0.15)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,7 +855,9 @@ class _FullAnalyticsReportsModuleState
                           Container(
                             margin: const EdgeInsets.only(bottom: 4),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: accent.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),

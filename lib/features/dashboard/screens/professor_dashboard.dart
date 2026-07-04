@@ -154,7 +154,10 @@ class _ProfessorDashboardState extends State<ProfessorDashboard> {
                       icon: Icons.error_outline,
                       color: atRiskCount == 0 ? Colors.green : Colors.amber,
                       buttonText: "View Predictive Analysis",
-                      onButtonPressed: () => Navigator.pushNamed(context, '/analytics'),
+                      onButtonPressed: () => Navigator.pushNamed(
+                        context, '/analytics',
+                        arguments: {'id': _userId},
+                      ),
                     ),
                     const SizedBox(height: 12),
 

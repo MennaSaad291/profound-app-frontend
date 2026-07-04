@@ -6,13 +6,25 @@ import 'dart:html' as html;
 class AnalyticsService {
   static const String baseUrl = "http://127.0.0.1:8000";
 
-  static Future<List<dynamic>> getCourses() async {
-    final response = await http.get(Uri.parse('$baseUrl/analysis/courses'));
-
+  static Future<List<dynamic>> getCourses({int? userId}) async {
+    final uri = Uri.parse('$baseUrl/analysis/courses').replace(
+      queryParameters: userId != null ? {'user_id': userId.toString()} : null,
+    );
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception("Failed to load courses");
+    }
+  }
+
+  static Future<List<String>> getSemesters() async {
+    final response = await http.get(Uri.parse('$baseUrl/analysis/semesters'));
+
+    if (response.statusCode == 200) {
+      return List<String>.from(jsonDecode(response.body));
+    } else {
+      throw Exception("Failed to load semesters");
     }
   }
 
