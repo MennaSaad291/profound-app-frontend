@@ -156,10 +156,11 @@ class _AILectureScreenState extends State<AILectureScreen> {
         Uri.parse('$_base/api/lecture/chat-edit'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'lecture_id':  _lectureId,
-          'slides':      _data!['slides'],
-          'instruction': instruction,
-          'topic':       _topicCtrl.text.trim(),
+          'lecture_id':          _lectureId,
+          'slides':              _data!['slides'],
+          'instruction':         instruction,
+          'topic':               _topicCtrl.text.trim(),
+          'current_slide_index': _slide,
         }),
       ).timeout(const Duration(seconds: 180));
 

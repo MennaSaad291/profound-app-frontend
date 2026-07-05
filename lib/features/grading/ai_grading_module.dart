@@ -430,7 +430,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
                 "ai_grade": res['ai_grade'],
                 "grade": res['ai_grade'],
                 "summary": report['summary'] ?? "Analysis complete.",
-                "essay_content": "",
+                "essay_content": res['essay_content'] ?? "",
                 "date": _getCurrentDate(),
                 "plagiarism": res['plagiarism_score'],
                 "plagiarism_score": res['plagiarism_score'],
