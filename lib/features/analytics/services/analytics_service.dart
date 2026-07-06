@@ -102,17 +102,33 @@ class AnalyticsService {
     }
   }
 
-  static Future<List<dynamic>> getBenchmarks(
+  static Future<Map<String, dynamic>> getBenchmarks(
     int courseId, {
+    String? semester,
+    int? days,
+    String? fromDate,
+    String? toDate,
     http.Client? client,
   }) async {
     final c = client ?? http.Client();
     final response = await c.get(
-      Uri.parse('$baseUrl/analysis/benchmarks?course_id=$courseId'),
+      Uri.parse('$baseUrl/analysis/benchmarks').replace(
+        queryParameters: {
+          'course_id': courseId.toString(),
+          if (semester != null && semester != 'All Semesters') 'semester': semester,
+          if (days != null) 'days': days.toString(),
+          if (fromDate != null) 'from_date': fromDate,
+          if (toDate != null) 'to_date': toDate,
+        },
+      ),
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final body = jsonDecode(response.body);
+      if (body is List) {
+        return {'benchmarks': body, 'message': null};
+      }
+      return Map<String, dynamic>.from(body);
     } else {
       throw Exception("Failed to load benchmarks");
     }

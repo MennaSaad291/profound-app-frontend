@@ -41,11 +41,26 @@ Future<Map<String, dynamic>> testGetAnalytics({
   throw Exception('Failed to load analytics');
 }
 
-Future<List<dynamic>> testGetBenchmarks(http.Client client, int courseId) async {
+Future<Map<String, dynamic>> testGetBenchmarks(
+  http.Client client,
+  int courseId, {
+  String? semester,
+}) async {
   final response = await client.get(
-    Uri.parse('$_baseUrl/analysis/benchmarks?course_id=$courseId'),
+    Uri.parse('$_baseUrl/analysis/benchmarks').replace(
+      queryParameters: {
+        'course_id': courseId.toString(),
+        if (semester != null && semester != 'All Semesters') 'semester': semester,
+      },
+    ),
   );
-  if (response.statusCode == 200) return jsonDecode(response.body);
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    if (body is List) {
+      return {'benchmarks': body, 'message': null};
+    }
+    return Map<String, dynamic>.from(body);
+  }
   throw Exception('Failed to load benchmarks');
 }
 
@@ -168,20 +183,30 @@ void main() {
   });
 
   group('getBenchmarks', () {
-    test('returns list on 200', () async {
-      final body = jsonEncode([
-        {'metric': 'Average Grade', 'yourCourse': 82.0,
-         'department': 76.0, 'difference': '+6.0'}
-      ]);
+    test('returns benchmarks on 200', () async {
+      final body = jsonEncode({
+        'benchmarks': [
+          {
+            'metric': 'Average Grade',
+            'yourCourse': 82.0,
+            'department': 76.0,
+            'difference': '+6.0',
+          },
+        ],
+        'message': null,
+      });
       final result = await testGetBenchmarks(mockOk(body), 28);
-      expect(result, isA<List>());
-      expect(result[0]['metric'], 'Average Grade');
+      expect(result['benchmarks'], isA<List>());
+      expect(result['benchmarks'][0]['metric'], 'Average Grade');
     });
 
     test('sends correct course_id in URL', () async {
       http.Request? captured;
       await testGetBenchmarks(
-        capturingClient('[]', (req) => captured = req),
+        capturingClient(
+          '{"benchmarks":[],"message":null}',
+          (req) => captured = req,
+        ),
         42,
       );
       expect(captured!.url.queryParameters['course_id'], '42');
@@ -194,9 +219,19 @@ void main() {
       );
     });
 
-    test('returns empty list when no benchmarks', () async {
-      final result = await testGetBenchmarks(mockOk('[]'), 99);
-      expect(result, isEmpty);
+    test('returns message when course not in semester', () async {
+      final body = jsonEncode({
+        'benchmarks': [],
+        'message':
+            'This course is not offered in Spring 2026. It belongs to Fall 2025.',
+      });
+      final result = await testGetBenchmarks(
+        mockOk(body),
+        99,
+        semester: 'Spring 2026',
+      );
+      expect(result['benchmarks'], isEmpty);
+      expect(result['message'], contains('not offered in Spring 2026'));
     });
   });
 }

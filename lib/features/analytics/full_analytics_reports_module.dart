@@ -35,6 +35,7 @@ class _FullAnalyticsReportsModuleState
   List<String> semesters = [];
   bool isSemestersLoading = false;
   List<Map<String, dynamic>> departmentBenchmarks = [];
+  String? benchmarksMessage;
   Map<String, dynamic> correlationData = {};
   bool isLoading = false;
   int? _userId;
@@ -267,11 +268,16 @@ class _FullAnalyticsReportsModuleState
                         days: getDays(dateRange),
                       );
 
-                      List<dynamic> benchmarksRaw = [];
+                      Map<String, dynamic> benchmarksResult = {
+                        'benchmarks': <dynamic>[],
+                        'message': null,
+                      };
 
                       if (selectedCourseId != null) {
-                        benchmarksRaw = await AnalyticsService.getBenchmarks(
+                        benchmarksResult = await AnalyticsService.getBenchmarks(
                           selectedCourseId!,
+                          semester: selectedSemester,
+                          days: getDays(dateRange),
                         );
                       }
 
@@ -295,8 +301,9 @@ class _FullAnalyticsReportsModuleState
                         );
 
                         departmentBenchmarks = List<Map<String, dynamic>>.from(
-                          benchmarksRaw,
+                          benchmarksResult['benchmarks'] ?? [],
                         );
+                        benchmarksMessage = benchmarksResult['message']?.toString();
                       });
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -537,12 +544,19 @@ class _FullAnalyticsReportsModuleState
                                     toDate: toDate?.toIso8601String(),
                                   );
 
-                              List<dynamic> benchmarksRaw = [];
+                              Map<String, dynamic> benchmarksResult = {
+                                'benchmarks': <dynamic>[],
+                                'message': null,
+                              };
 
                               if (selectedCourseId != null) {
-                                benchmarksRaw =
+                                benchmarksResult =
                                     await AnalyticsService.getBenchmarks(
                                       selectedCourseId!,
+                                      semester: selectedSemester,
+                                      days: getDays(dateRange),
+                                      fromDate: fromDate?.toIso8601String(),
+                                      toDate: toDate?.toIso8601String(),
                                     );
                               }
 
@@ -570,8 +584,10 @@ class _FullAnalyticsReportsModuleState
 
                                 departmentBenchmarks =
                                     List<Map<String, dynamic>>.from(
-                                      benchmarksRaw,
+                                      benchmarksResult['benchmarks'] ?? [],
                                     );
+                                benchmarksMessage =
+                                    benchmarksResult['message']?.toString();
 
                                 showFilters = false;
                               });
@@ -899,7 +915,15 @@ class _FullAnalyticsReportsModuleState
       title: "Department Benchmarks",
       subtitle: "Compare your course performance against department averages",
       icon: LucideIcons.barChart3,
-      child: benchmarks.isEmpty
+      child: benchmarksMessage != null
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                benchmarksMessage!,
+                style: const TextStyle(color: Colors.orange),
+              ),
+            )
+          : benchmarks.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(16),
               child: Text(
