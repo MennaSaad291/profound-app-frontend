@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class ProfessorDashboard extends StatefulWidget {
   const ProfessorDashboard({super.key});
@@ -11,7 +12,7 @@ class ProfessorDashboard extends StatefulWidget {
 }
 
 class _ProfessorDashboardState extends State<ProfessorDashboard> {
-  static const String _base = 'http://127.0.0.1:8000';
+  static const String _base = ApiConstants.baseUrl;
 
   bool _isLoading = true;
   double classAverage = 0;

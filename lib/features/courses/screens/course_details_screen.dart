@@ -3,8 +3,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
-const String _base = 'http://127.0.0.1:8000';
+const String _base = ApiConstants.baseUrl;
 
 class CourseDetailsDashboard extends StatefulWidget {
   const CourseDetailsDashboard({super.key});

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class ResearchOrganizerScreen extends StatefulWidget {
   const ResearchOrganizerScreen({super.key});
@@ -13,7 +14,7 @@ class ResearchOrganizerScreen extends StatefulWidget {
 
 class _ResearchOrganizerScreenState extends State<ResearchOrganizerScreen>
     with SingleTickerProviderStateMixin {
-  static const _base = 'http://127.0.0.1:8000';
+  static const _base = ApiConstants.baseUrl;
   bool _isLoading = true;
   int? _userId;
   List<Map<String, dynamic>> _pubs = [];

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../core/constants/app_colors.dart';
 import 'signup_screen.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginUser() async {
     setState(() => _isLoading = true);
     
-    final url = Uri.parse('http://localhost:8000/login'); 
+    final url = Uri.parse('${ApiConstants.baseUrl}/login'); 
 
     try {
       final response = await http.post(

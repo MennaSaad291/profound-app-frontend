@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:html' as html;
 import 'package:file_picker/file_picker.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class ProfessorProfileScreen extends StatefulWidget {
   const ProfessorProfileScreen({super.key});
@@ -28,7 +29,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
   }
 
   Future<void> _fetchProfile(int userId) async {
-    final url = Uri.parse('http://localhost:8000/profile/$userId');
+    final url = Uri.parse('${ApiConstants.baseUrl}/profile/$userId');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -45,7 +46,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
   }
 
   Future<void> _submitData(String path, Map<String, dynamic> body) async {
-    final url = Uri.parse('http://localhost:8000$path');
+    final url = Uri.parse('${ApiConstants.baseUrl}$path');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -112,7 +113,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                 if (isEdit) IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: () async {
-                    await http.delete(Uri.parse('http://localhost:8000/graduation-projects/${existing['id']}'));
+                    await http.delete(Uri.parse('${ApiConstants.baseUrl}/graduation-projects/${existing['id']}'));
                     if (ctx.mounted) Navigator.pop(ctx);
                     _fetchProfile(profileData!['id']);
                   },
@@ -168,8 +169,8 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                   final request = http.MultipartRequest(
                     isEdit ? 'PUT' : 'POST',
                     Uri.parse(isEdit
-                        ? 'http://localhost:8000/graduation-projects/${existing['id']}'
-                        : 'http://localhost:8000/graduation-projects'),
+                        ? '${ApiConstants.baseUrl}/graduation-projects/${existing['id']}'
+                        : '${ApiConstants.baseUrl}/graduation-projects'),
                   );
                   if (!isEdit) request.fields['user_id'] = profileData!['id'].toString();
                   request.fields['title']         = titleC.text.trim();
@@ -516,7 +517,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  final url = 'http://localhost:8000/graduation-projects/${item['id']}/view';
+                  final url = '${ApiConstants.baseUrl}/graduation-projects/${item['id']}/view';
                   html.window.open(url, '_blank');
                 },
                 icon: const Icon(Icons.visibility_outlined, size: 15, color: Color(0xFF1D4ED8)),
@@ -535,7 +536,7 @@ class _ProfessorProfileScreenState extends State<ProfessorProfileScreen> {
                 onPressed: () async {
                   try {
                     final res = await http.get(
-                      Uri.parse('http://localhost:8000/graduation-projects/${item['id']}/download'),
+                      Uri.parse('${ApiConstants.baseUrl}/graduation-projects/${item['id']}/download'),
                     );
                     if (res.statusCode == 200) {
                       final blob = html.Blob([res.bodyBytes], 'application/pdf');

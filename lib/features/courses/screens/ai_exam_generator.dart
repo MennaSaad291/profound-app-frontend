@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:math';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class AIExamGenerator extends StatefulWidget {
   const AIExamGenerator({super.key});
@@ -83,7 +84,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
   Future<void> _downloadExamToDevice(String examId) async {
     setState(() => isLoading = true);
     try {
-      final url = 'http://127.0.0.1:8000/exams/export-word/$examId';
+    final url = '${ApiConstants.baseUrl}/exams/export-word/$examId';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) throw Exception('Server returned ${response.statusCode}');
       final blob = html.Blob([response.bodyBytes],
@@ -105,7 +106,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
     setState(() => isGeneratingVariations = true);
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/exams/$examId/variations'),
+        Uri.parse('${ApiConstants.baseUrl}/exams/$examId/variations'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'num_variations': numVariations}),
       ).timeout(const Duration(seconds: 120));
@@ -259,7 +260,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
         for (final entry in diffCounts.entries) {
           if (entry.value == 0) continue;
           final request = http.MultipartRequest(
-              'POST', Uri.parse('http://127.0.0.1:8000/exams/generate-from-content'));
+              'POST', Uri.parse('${ApiConstants.baseUrl}/exams/generate-from-content'));
           // Clone the file bytes for each request
           final fileBytes = _contentFile!.bytes!;
           request.fields['topic']               = _topicController.text.trim();
@@ -345,7 +346,7 @@ class _AIExamGeneratorState extends State<AIExamGenerator> {
             if (examId != null) reqBody["existing_exam_id"] = examId;
 
             final response = await http.post(
-              Uri.parse('http://127.0.0.1:8000/exams/generate'),
+              Uri.parse('${ApiConstants.baseUrl}/exams/generate'),
               headers: {"Content-Type": "application/json"},
               body: jsonEncode(reqBody),
             ).timeout(const Duration(seconds: 300));

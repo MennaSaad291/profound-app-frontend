@@ -11,6 +11,7 @@ import"../grading/grading_review_dialog.dart";
 import '../../core/services/grading_settings_service.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class AssignmentsScreen extends StatefulWidget {
   final int courseId;
@@ -80,7 +81,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/submission-details/${sub['id']}'),
+        Uri.parse('${ApiConstants.baseUrl}/submission-details/${sub['id']}'),
       );
 
       if (mounted) {
@@ -187,7 +188,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   Future<void> _handleUpdateGrade(int submissionId, double finalGrade) async {
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:8000/update-submission-grade/$submissionId'),
+        Uri.parse('${ApiConstants.baseUrl}/update-submission-grade/$submissionId'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"final_grade": finalGrade.toInt()}),
       );
@@ -217,7 +218,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   Future<void> fetchData() async {
     try {
       final res = await http.get(Uri.parse(
-          'http://127.0.0.1:8000/assignments-with-submissions/${widget.courseId}'));
+          '${ApiConstants.baseUrl}/assignments-with-submissions/${widget.courseId}'));
       if (res.statusCode == 200) {
         setState(() {
           assignments = json.decode(res.body);
@@ -252,7 +253,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
     try {
       var request = http.MultipartRequest(
-          'POST', Uri.parse('http://127.0.0.1:8000/grade-submission/$assignmentId'));
+          'POST', Uri.parse('${ApiConstants.baseUrl}/grade-submission/$assignmentId'));
 
       // request.fields['feedback_tone'] =
       //     GradingSettingsService.instance.feedbackTone;
@@ -329,7 +330,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://127.0.0.1:8000/grade-submission-batch/$assignmentId'),
+        Uri.parse('${ApiConstants.baseUrl}/grade-submission-batch/$assignmentId'),
       );
       // request.fields['feedback_tone'] = GradingSettingsService.instance.feedbackTone;
       request.fields['feedback_tone'] = _sessionTone;
@@ -565,7 +566,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       PlatformFile? mFile,
       PlatformFile? rFile) async {
     var request =
-    http.MultipartRequest('POST', Uri.parse('http://127.0.0.1:8000/assignments'));
+    http.MultipartRequest('POST', Uri.parse('${ApiConstants.baseUrl}/assignments'));
     request.fields['assignment_name'] = name;
     request.fields['course_id'] = widget.courseId.toString();
     request.fields['assignment_question'] = question;
@@ -610,10 +611,10 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
       String endpoint;
       String extension;
       if (format == 'excel') {
-        endpoint = 'http://127.0.0.1:8000/export-grades-excel/$assignmentId';
+        endpoint = '${ApiConstants.baseUrl}/export-grades-excel/$assignmentId';
         extension = 'xlsx';
       } else {
-        endpoint = 'http://127.0.0.1:8000/export-grades-pdf/$assignmentId';
+        endpoint = '${ApiConstants.baseUrl}/export-grades-pdf/$assignmentId';
         extension = 'pdf';
       }
 
@@ -976,7 +977,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     String rubricText,
   ) async {
     var request = http.MultipartRequest(
-        'PUT', Uri.parse('http://127.0.0.1:8000/assignments/$assignmentId'));
+        'PUT', Uri.parse('${ApiConstants.baseUrl}/assignments/$assignmentId'));
     request.fields['assignment_name']     = name;
     request.fields['assignment_question'] = question;
     request.fields['is_model_answer']     = isModel.toString();

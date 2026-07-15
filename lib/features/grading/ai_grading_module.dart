@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../grading/grading_review_dialog.dart';
 import '../../core/services/grading_settings_service.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class AiGradingModule extends StatefulWidget {
   final int userId;
@@ -52,7 +53,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       try {
         var request = http.MultipartRequest(
             'POST',
-            Uri.parse('http://127.0.0.1:8000/extract-text')
+            Uri.parse('${ApiConstants.baseUrl}/extract-text')
         );
         request.files.add(http.MultipartFile.fromBytes(
             'file',
@@ -127,10 +128,10 @@ class _AiGradingModuleState extends State<AiGradingModule> {
       String endpoint;
       String extension;
       if (format == 'excel') {
-        endpoint = 'http://127.0.0.1:8000/export-general-excel/${widget.userId}';
+        endpoint = '${ApiConstants.baseUrl}/export-general-excel/${widget.userId}';
         extension = 'xlsx';
       } else {
-        endpoint = 'http://127.0.0.1:8000/export-general-pdf/${widget.userId}';
+        endpoint = '${ApiConstants.baseUrl}/export-general-pdf/${widget.userId}';
         extension = 'pdf';
       }
 
@@ -179,7 +180,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     setState(() => isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/submissions/general?user_id=${widget.userId}'),
+        Uri.parse('${ApiConstants.baseUrl}/submissions/general?user_id=${widget.userId}'),
       );
 
       if (response.statusCode == 200) {
@@ -240,7 +241,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     try {
       // 1. Analyze via Backend Endpoint (including user_id and feedback_tone)
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/analyze-general-submission?user_id=${widget.userId}'),
+        Uri.parse('${ApiConstants.baseUrl}/analyze-general-submission?user_id=${widget.userId}'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "student_text": _studentController.text,
@@ -272,7 +273,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
 
         // 2. Save the detailed report structure to the Database
         final saveResponse = await http.post(
-          Uri.parse('http://127.0.0.1:8000/submissions/general'),
+          Uri.parse('${ApiConstants.baseUrl}/submissions/general'),
           headers: {"Content-Type": "application/json"},
           body: json.encode({
             "user_id": widget.userId,
@@ -392,7 +393,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://127.0.0.1:8000/analyze-general-batch'),
+        Uri.parse('${ApiConstants.baseUrl}/analyze-general-batch'),
       );
       request.fields['user_id'] = widget.userId.toString();
       request.fields['mode'] = selectedMode;
@@ -471,7 +472,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("⚠️ Plagiarism Detected"),
+        title: const Text("âš ï¸ Plagiarism Detected"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,8 +537,8 @@ class _AiGradingModuleState extends State<AiGradingModule> {
             ),
             Text(
               score > 50
-                  ? "• Request a new submission\n• Use a plagiarism checker\n• Consider academic integrity policies"
-                  : "• Review the submission\n• Check for proper citations\n• Request clarification if needed",
+                  ? "â€¢ Request a new submission\nâ€¢ Use a plagiarism checker\nâ€¢ Consider academic integrity policies"
+                  : "â€¢ Review the submission\nâ€¢ Check for proper citations\nâ€¢ Request clarification if needed",
             ),
           ],
         ),
@@ -580,7 +581,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
           try {
             // 1. Update the grade on your backend service
             final response = await http.put(
-              Uri.parse('http://127.0.0.1:8000/api/submissions/${normalizedSubmission['id']}'),
+              Uri.parse('${ApiConstants.baseUrl}/api/submissions/${normalizedSubmission['id']}'),
               headers: {"Content-Type": "application/json"},
               body: json.encode({
                 "ai_grade": finalGrade.toInt(), // Cast to Int if your DB expects integers
@@ -884,7 +885,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                isFinalized ? "✓ Finalized" : (score >= 50 ? "✓ Pass" : "⚠️ Needs Work"),
+                                isFinalized ? "âœ“ Finalized" : (score >= 50 ? "âœ“ Pass" : "âš ï¸ Needs Work"),
                                 style: TextStyle(
                                   color: isFinalized ? Colors.purple.shade700 : (score >= 50 ? Colors.green.shade700 : Colors.orange.shade700),
                                   fontSize: 10,
@@ -965,7 +966,7 @@ class _AiGradingModuleState extends State<AiGradingModule> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isFinalized ? "✓ Finalized" : "📄 Review & Finalize",
+                      isFinalized ? "âœ“ Finalized" : "ðŸ“„ Review & Finalize",
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                   ],

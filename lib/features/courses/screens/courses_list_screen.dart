@@ -8,8 +8,9 @@ import 'dart:html' as html;
 import 'package:file_picker/file_picker.dart';
 
 import '../../assignments/assignments_screen.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
-const String _base = 'http://127.0.0.1:8000';
+final String _base = ApiConstants.baseUrl;
 
 class CoursesListScreen extends StatefulWidget {
   const CoursesListScreen({super.key});

@@ -1,8 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   final int userId;
@@ -40,7 +41,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Future<void> _fetchProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8000/profile/${widget.userId}'),
+        Uri.parse('${ApiConstants.baseUrl}/profile/${widget.userId}'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -144,7 +145,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                       setDialogState(() { isVerifying = true; errorText = null; });
                       try {
                         final response = await http.post(
-                          Uri.parse('http://localhost:8000/verify-password'),
+                          Uri.parse('${ApiConstants.baseUrl}/verify-password'),
                           headers: {'Content-Type': 'application/json'},
                           body: jsonEncode({
                             'user_id': widget.userId,
@@ -183,7 +184,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     setState(() => _isLoadingProfile = true);
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:8000/profile/${widget.userId}'),
+        Uri.parse('${ApiConstants.baseUrl}/profile/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'full_name': _nameController.text.trim(),
@@ -221,7 +222,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8000/change-password'),
+        Uri.parse('${ApiConstants.baseUrl}/change-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': widget.userId,
@@ -255,7 +256,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {

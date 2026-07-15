@@ -5,8 +5,9 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
-const String _base = 'http://127.0.0.1:8000';
+const String _base = ApiConstants.baseUrl;
 const int _kMaxSlides = 60;
 const int _kMinSlides = 3;
 

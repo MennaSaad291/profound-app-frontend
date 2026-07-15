@@ -4,9 +4,10 @@ import 'package:http/http.dart' as http;
 // Conditional import: web uses dart:html, other platforms use a stub
 import 'analytics_service_export_stub.dart'
     if (dart.library.html) 'analytics_service_export_web.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class AnalyticsService {
-  static const String baseUrl = "http://127.0.0.1:8000";
+  static const String baseUrl = ApiConstants.baseUrl;
 
   static Future<List<dynamic>> getCourses({
     int? userId,

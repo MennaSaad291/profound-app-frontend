@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../core/constants/app_colors.dart';
+import 'package:profound_app_frontend/core/constants/api_constants.dart';
 
 class SignUpForm extends StatefulWidget {
   const SignUpForm({super.key});
@@ -20,7 +21,7 @@ class _SignUpFormState extends State<SignUpForm> {
 
   Future<void> _registerUser() async {
     setState(() => _isLoading = true);
-    final url = Uri.parse('http://localhost:8000/register');
+    final url = Uri.parse('${ApiConstants.baseUrl}/register');
     try {
       final response = await http.post(
         url,
